@@ -1,0 +1,102 @@
+/* ===== TOP BAR  ·  breadcrumbs, global search, buttons, badge ===== */
+
+.mainc {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+header.top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 24px;
+}
+#crumb {
+  font-size: 13px;
+  color: var(--mu);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+#crumb b {
+  color: var(--tx);
+  font-weight: 600;
+}
+#crumb a {
+  color: var(--mu);
+  cursor: pointer;
+}
+#crumb a:hover {
+  color: var(--ac);
+}
+.srch {
+  position: relative;
+  width: 300px;
+  max-width: 40vw;
+}
+#gs {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 12px;
+}
+#res {
+  display: none;
+  position: absolute;
+  top: 110%;
+  left: 0;
+  right: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+  max-height: 340px;
+  overflow: auto;
+  padding: 4px;
+}
+#res div {
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+#res div:hover,
+#res div.h {
+  background: var(--ac2);
+}
+#res small {
+  color: var(--mu);
+}
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--wa) 16%, transparent);
+  color: var(--wa);
+  white-space: nowrap;
+}
+.ib {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 11px;
+  cursor: pointer;
+}
+.ib:hover {
+  border-color: var(--ac);
+  color: var(--ac);
+}
+#burger {
+  display: inline-block;
+}

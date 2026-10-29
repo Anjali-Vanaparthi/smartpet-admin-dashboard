@@ -1,0 +1,121 @@
+/* ===== SIDEBAR  ·  brand, navigation links, collapsible table groups ===== */
+
+.app {
+  display: grid;
+  grid-template-columns: 268px minmax(0, 1fr);
+  min-height: 100vh;
+}
+aside#sb {
+  background: linear-gradient(180deg, var(--sb), color-mix(in srgb, var(--sb) 86%, #000));
+  color: var(--sbt);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+  padding: 18px 12px 24px;
+}
+.brand {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 4px 8px 18px;
+  color: #fff;
+}
+.brand b {
+  display: block;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+}
+.brand small {
+  color: var(--sbt);
+  font-size: 11.5px;
+}
+.logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #3b82f6, #1e3a8a);
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+}
+.lbl {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: #7d8da8;
+  margin: 18px 10px 6px;
+}
+aside a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  color: var(--sbt);
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 13.2px;
+}
+aside a:hover {
+  background: var(--sba);
+  color: #fff;
+}
+aside a.on {
+  background: rgba(59, 130, 246, 0.2);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 #60a5fa;
+}
+aside a small {
+  opacity: 0.65;
+  font-size: 11.5px;
+}
+aside details summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 7px;
+}
+aside details summary:hover {
+  background: var(--sba);
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+aside details summary i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+aside details summary::after {
+  content: "▸";
+  margin-left: auto;
+  opacity: 0.6;
+  transition: 0.15s;
+}
+details[open] summary::after {
+  transform: rotate(90deg);
+}
+aside details a {
+  margin-left: 14px;
+}
+#nf {
+  width: 100%;
+  background: var(--sba);
+  border: 1px solid #234574;
+  border-radius: 7px;
+  padding: 6px 10px;
+  color: #fff;
+  margin-bottom: 6px;
+}
+#nf::placeholder {
+  color: #7d8da8;
+}

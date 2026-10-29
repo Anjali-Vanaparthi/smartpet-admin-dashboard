@@ -1,0 +1,78 @@
+/* ===== TOKENS & BASE  ·  blue theme (deep indigo by default, light sky variant), reset, typography ===== */
+
+:root {
+  --bg: #0a1030;
+  --panel: #111a4d;
+  --panel2: #182563;
+  --line: #2a3a85;
+  --tx: #eaf0ff;
+  --mu: #9fb0e0;
+  --ac: #5aa2ff;
+  --acd: #3b7ff0;
+  --on: #06123a;
+  --ac2: rgba(90, 162, 255, 0.1);
+  --ok: #34d3a0;
+  --hl: #ff9a52;
+  --wa: #fbbf24;
+  --cr: #fb7185;
+  --sb: #080e2b;
+  --sbt: #b4c4f2;
+  --sba: rgba(90, 162, 255, 0.08);
+  --sh: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 30px rgba(0, 0, 0, 0.25);
+  --glow: 0 0 0 1px rgba(90, 162, 255, 0.35), 0 8px 30px rgba(90, 162, 255, 0.12);
+  --r: 20px;
+  color-scheme: dark;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+:root[data-theme="light"] {
+  --bg: #e9f1ff;
+  --panel: #ffffff;
+  --panel2: #f2f7ff;
+  --line: #d3e1fb;
+  --tx: #0f1b45;
+  --mu: #5a6b9a;
+  --ac: #1d4ed8;
+  --acd: #1e40af;
+  --on: #ffffff;
+  --ac2: rgba(29, 78, 216, 0.07);
+  --ok: #0f9d74;
+  --hl: #f07a1f;
+  --wa: #b45309;
+  --cr: #be123c;
+  --sb: #0a1238;
+  --sbt: #b8c8f4;
+  --sba: rgba(90, 162, 255, 0.12);
+  --sh: 0 1px 2px rgba(15, 27, 69, 0.05);
+  --glow: 0 0 0 1px rgba(29, 78, 216, 0.35), 0 4px 14px rgba(29, 78, 216, 0.12);
+  color-scheme: light;
+}
+* {
+  box-sizing: border-box;
+}
+html {
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+}
+body {
+  margin: 0;
+  background:
+    radial-gradient(900px 480px at 85% -8%, color-mix(in srgb, var(--ac) 11%, transparent), transparent 70%),
+    radial-gradient(700px 420px at 0% 100%, color-mix(in srgb, var(--ac) 6%, transparent), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--tx);
+  font:
+    14px/1.5 Inter,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+button,
+input,
+select {
+  font: inherit;
+  color: var(--tx);
+}

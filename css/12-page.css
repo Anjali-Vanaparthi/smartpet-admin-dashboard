@@ -1,0 +1,26 @@
+/* ===== PAGE FRAME  ·  content area and page headings ===== */
+
+#view {
+  padding: 24px;
+  max-width: 1500px;
+  width: 100%;
+}
+.pgh {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+h1.t {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.sub {
+  color: var(--mu);
+  margin-top: 2px;
+  max-width: 720px;
+}

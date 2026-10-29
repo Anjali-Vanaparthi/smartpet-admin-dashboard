@@ -1,0 +1,186 @@
+/* ===== 3D LAYER  ·  perspective tilt, extruded tiles, pressable buttons, rotating 3D collar, floating scene =====
+   Loads last so it wins over earlier hover/transform rules.
+   JS counterparts: js/36-fx.js (tilt + pointer parallax), js/37-3d.js (collar + scene). */
+
+:root {
+  --persp: 900px;
+  --edge: color-mix(in srgb, var(--k, var(--ac)) 32%, #050a26);
+  --ext: 0 1px 0 var(--edge), 0 2px 0 var(--edge), 0 3px 0 var(--edge), 0 4px 0 var(--edge), 0 5px 0 var(--edge), 0 6px 0 var(--edge),
+    0 22px 30px -10px rgba(2, 6, 32, 0.55);
+  --sh: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 2px 0 rgba(2, 6, 32, 0.5), 0 22px 40px -22px rgba(2, 6, 32, 0.65);
+}
+:root[data-theme="light"] {
+  --edge: color-mix(in srgb, var(--k, var(--ac)) 40%, #a9c0ee);
+  --ext: 0 1px 0 var(--edge), 0 2px 0 var(--edge), 0 3px 0 var(--edge), 0 4px 0 var(--edge), 0 5px 0 var(--edge), 0 6px 0 var(--edge),
+    0 20px 28px -12px rgba(29, 78, 216, 0.3);
+  --sh: 0 1px 0 #fff inset, 0 2px 0 #c9d9f6, 0 18px 34px -20px rgba(29, 78, 216, 0.35);
+}
+
+/* ---- tilt: JS adds .tilting and sets --rx / --ry while the pointer is over a tile ---- */
+.kpi, .gc, .step, .card, .hero, .strip > div {
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.2, 0.9, 0.25, 1.15), box-shadow 0.3s var(--ease), border-color 0.25s, background-color 0.35s;
+}
+.kpi, .gc, .step, .strip > div { --lift: -7px; }
+.card, .hero { --lift: 0px; }
+:is(.kpi, .gc, .step, .card, .hero, .strip > div).tilting,
+:is(.kpi, .gc, .step, .card, .hero, .strip > div).tilting:hover {
+  transform: perspective(var(--persp)) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--lift));
+  transition: transform 0.08s linear, box-shadow 0.3s var(--ease), border-color 0.25s;
+}
+
+/* extruded tiles: a stack of solid shadows reads as real thickness */
+.kpi, .gc, .step, .strip > div { box-shadow: var(--ext); overflow: visible; }
+.kpi:hover, .gc:hover, .step:hover, .strip > div:hover { box-shadow: var(--ext); border-color: color-mix(in srgb, var(--k, var(--ac)) 55%, var(--line)); }
+.kpi:active, .gc:active, .step:active { box-shadow: 0 2px 0 var(--edge), 0 8px 12px -6px rgba(2, 6, 32, 0.5); }
+.kpi::before { border-radius: 14px 0 0 14px; }
+.kpi { background: linear-gradient(160deg, color-mix(in srgb, var(--k, var(--ac)) 12%, var(--panel)), var(--panel) 60%); }
+
+/* depth inside tiles: content floats above the surface */
+.kpi b { transform: translateZ(30px); text-shadow: 0 6px 14px rgba(2, 6, 32, 0.35); }
+.kpi span { transform: translateZ(16px); }
+.gc b, .gc p, .gc em { transform: translateZ(18px); }
+.card > h3, .card > .chd { transform: translateZ(10px); }
+.hero h1 { text-shadow: 0 6px 18px rgba(2, 6, 32, 0.4); }
+
+/* page entrance: tiles swing up out of the screen plane */
+@keyframes rise { from { opacity: 0; transform: perspective(900px) translateY(28px) translateZ(-90px) rotateX(16deg); } }
+@keyframes riseIn { from { opacity: 0; transform: perspective(900px) translateY(26px) translateZ(-70px) rotateX(12deg); filter: blur(3px); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* ---- buttons: pressable keys ---- */
+.ib, .hbtn, .chip-b {
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--line) 85%, #000), 0 8px 12px -6px rgba(2, 6, 32, 0.45);
+  transform: translateY(0);
+  transition: transform 0.12s var(--ease), box-shadow 0.12s var(--ease), border-color 0.2s, color 0.2s, background-color 0.3s;
+}
+.ib:hover, .chip-b:hover { transform: translateY(-2px); box-shadow: 0 5px 0 color-mix(in srgb, var(--line) 85%, #000), 0 12px 16px -6px rgba(2, 6, 32, 0.45); }
+.ib:active, .hbtn:active, .chip-b:active { transform: translateY(3px); box-shadow: 0 0 0 color-mix(in srgb, var(--line) 85%, #000), 0 2px 4px rgba(2, 6, 32, 0.4); }
+.ib[disabled] { box-shadow: none; transform: none; }
+.hbtn { box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3); }
+.chip-b.on { box-shadow: 0 3px 0 color-mix(in srgb, var(--ac) 55%, #000), 0 8px 14px -6px rgba(2, 6, 32, 0.45); }
+.pills a, .subs { box-shadow: 0 2px 0 color-mix(in srgb, var(--line) 85%, #000); }
+.pills a.on { box-shadow: none; }
+#totop { box-shadow: 0 4px 0 color-mix(in srgb, var(--ac) 55%, #000), 0 12px 18px -6px rgba(2, 6, 32, 0.5); }
+#totop:active { transform: translateY(3px); box-shadow: 0 1px 0 color-mix(in srgb, var(--ac) 55%, #000); }
+
+/* ---- sidebar: items step toward you on hover ---- */
+.mnav { perspective: 700px; }
+aside#sb a { transform-origin: left center; }
+aside#sb a:hover { transform: translateX(4px) translateZ(26px) rotateY(-7deg); }
+.nind { box-shadow: 0 4px 0 rgba(20, 50, 140, 0.55), 0 0 26px rgba(90, 162, 255, 0.22); }
+.logo3d { width: 54px; height: 54px; flex: none; position: relative; display: grid; place-items: center; }
+
+/* ---- hero scene ---- */
+.hero-3d { position: absolute; right: 54px; top: 50%; width: 140px; height: 140px; margin-top: -70px; z-index: 1; display: grid; place-items: center; }
+.hero-3d::before, .hero-3d::after {
+  content: ""; position: absolute; inset: -34px; border-radius: 50%; border: 2px solid rgba(255, 154, 82, 0.55);
+  animation: radar 3.6s ease-out infinite; pointer-events: none;
+}
+.hero-3d::after { animation-delay: 1.8s; }
+@keyframes radar { from { transform: scale(0.45); opacity: 0.9; } to { transform: scale(1.5); opacity: 0; } }
+@media (max-width: 760px) { .hero-3d { display: none; } }
+
+/* ===== the 3D collar: a ring of slats rotating around the Y axis ===== */
+.c3d {
+  --r: 64px; --h: 34px; --n: 48; --t: 16s;
+  --w: calc(6.2832 * var(--r) / var(--n) + 1.2px);
+  position: relative; width: calc(var(--r) * 2); height: calc(var(--r) * 2); perspective: 1100px; margin: 0 auto;
+}
+.c3d.sm { --r: 20px; --h: 20px; --t: 7s; }
+.c3d.md { --r: 46px; --h: 25px; --t: 14s; }
+.c3d.lg { --r: 58px; --h: 30px; --t: 18s; }
+.c3d-spin {
+  position: absolute; inset: 0; transform-style: preserve-3d;
+  transform: rotateX(calc(-22deg + var(--py, 0) * -34deg)) rotateY(calc(var(--px, 0) * 46deg));
+  transition: transform 0.35s var(--ease);
+}
+.c3d-ring { position: absolute; inset: 0; transform-style: preserve-3d; animation: c3dspin var(--t) linear infinite; }
+@keyframes c3dspin { to { transform: rotateY(360deg); } }
+@keyframes c3dshade { 0%, 100% { filter: brightness(1.32); } 25%, 75% { filter: brightness(0.6); } 50% { filter: brightness(0.82); } }
+.c3d-seg, .c3d-part {
+  position: absolute; left: 50%; top: 50%; width: var(--w); height: var(--h); margin: calc(var(--h) / -2) 0 0 calc(var(--w) / -2);
+  transform: rotateY(calc(var(--i) * 360deg / var(--n))) translateZ(var(--r));
+}
+.c3d-seg {
+  background:
+    linear-gradient(180deg, #ff9a52 0 8%, transparent 8% 92%, #ff9a52 92%),
+    linear-gradient(180deg, #5878f0, #2f45c8 50%, #1c2a86);
+  animation: c3dshade var(--t) ease-in-out infinite;
+  animation-delay: calc(var(--t) * var(--i) / var(--n) * -1);
+}
+/* glowing LED strip along the middle of the band */
+.c3d-seg::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: calc(var(--h) / 10 + 1px); margin-top: calc(var(--h) / -20 - 0.5px);
+  background: #5ef0ff; box-shadow: 0 0 calc(var(--h) / 5) #5ef0ff; }
+.c3d-part { transform-style: preserve-3d; }
+.c3d-buckle { position: absolute; left: 50%; top: 14%; bottom: 14%; width: calc(var(--h) * 0.7); margin-left: calc(var(--h) * -0.35); border-radius: 6px;
+  background: linear-gradient(135deg, #f4f8ff, #aab9e6 60%, #7886bd); box-shadow: inset 0 0 0 calc(var(--h) / 9) rgba(60, 76, 160, 0.55); backface-visibility: hidden; }
+
+/* the smart module: a raised device with status LEDs, an antenna bump and a live heartbeat trace */
+.c3d-mod {
+  position: absolute; left: 50%; top: 50%; width: calc(var(--h) * 1.55); height: calc(var(--h) * 1.2);
+  margin: calc(var(--h) * -0.6) 0 0 calc(var(--h) * -0.775); border-radius: calc(var(--h) * 0.28);
+  background: linear-gradient(155deg, #34489f, #101a55 55%, #0a1140);
+  box-shadow: 0 0 0 calc(var(--h) / 18 + 0.5px) #9db8ff, 0 0 0 calc(var(--h) / 9 + 1px) rgba(7, 14, 60, 0.7), 0 calc(var(--h) / 5) calc(var(--h) / 2.5) rgba(2, 6, 32, 0.55);
+  transform: translateZ(calc(var(--h) * 0.32)); backface-visibility: hidden; display: grid; place-items: center;
+}
+.c3d-mod::before { content: ""; position: absolute; left: 50%; bottom: 100%; width: calc(var(--h) * 0.5); height: calc(var(--h) * 0.2); margin: 0 0 calc(var(--h) / 18) calc(var(--h) * -0.25);
+  border-radius: 99px 99px 0 0; background: #101a55; box-shadow: 0 0 0 calc(var(--h) / 18 + 0.5px) #9db8ff; }
+.c3d-mod svg { width: 74%; margin-top: 18%; fill: none; stroke: #5ef0ff; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+  filter: drop-shadow(0 0 3px #5ef0ff); stroke-dasharray: 64; animation: ecg 2.2s linear infinite; }
+@keyframes ecg { from { stroke-dashoffset: 64; } to { stroke-dashoffset: -64; } }
+.c3d-mod .led { position: absolute; top: 14%; left: 12%; width: calc(var(--h) * 0.15); aspect-ratio: 1; border-radius: 50%; background: #ff9a52; box-shadow: 0 0 6px #ff9a52; animation: ledblink 1.4s ease-in-out infinite; }
+.c3d-mod .led.g { left: auto; right: 12%; background: #4ade80; box-shadow: 0 0 6px #4ade80; animation-delay: 0.7s; }
+@keyframes ledblink { 50% { opacity: 0.3; } }
+
+/* collar that stays put (worn by the dog): no spin, lighting frozen, gentle pointer sway */
+.c3d.still .c3d-ring { animation: none; }
+.c3d.still .c3d-seg { animation-play-state: paused; }
+.c3d.still .c3d-spin { transform: rotateX(calc(-12deg + var(--py, 0) * -16deg)) rotateY(calc(var(--px, 0) * 26deg)); }
+.c3d.still .c3d-plane { transform: translate(-50%, -50%) rotateX(calc(12deg + var(--py, 0) * 16deg)) rotateY(calc(var(--px, 0) * -16deg)); }
+
+/* the dog sits in a flat plane at the middle of the ring, so the front of the collar passes in front and the back passes behind */
+.c3d-plane { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotateX(calc(22deg + var(--py, 0) * 34deg)) rotateY(calc(var(--px, 0) * -30deg)); transition: transform 0.35s var(--ease); }
+.c3d-plane svg { display: block; width: calc(var(--r) * 5.5); height: auto; overflow: visible; filter: drop-shadow(0 18px 18px rgba(4, 12, 60, 0.35)); }
+
+/* ===== floating scene behind every page ===== */
+#scene { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+#scene i { position: absolute; left: var(--x); top: var(--y); width: var(--s); height: var(--s);
+  transform: translate3d(calc(var(--mx, 0) * var(--d) * 1px), calc(var(--my, 0) * var(--d) * 1px), 0); transition: transform 0.5s var(--ease); }
+#scene i::before { content: ""; position: absolute; inset: 0; border-radius: 50%; animation: bob var(--bt, 11s) ease-in-out infinite alternate; }
+#scene i.sp::before { background: radial-gradient(circle at 30% 26%, rgba(255, 255, 255, 0.7), var(--c) 40%, color-mix(in srgb, var(--c) 35%, #000) 100%); opacity: 0.3; }
+#scene i.rg::before { background: none; border: calc(var(--s) / 8) solid var(--c); opacity: 0.18; transform: rotateX(62deg); }
+:root[data-theme="light"] #scene i.sp::before { opacity: 0.28; }
+:root[data-theme="light"] #scene i.rg::before { opacity: 0.2; }
+@keyframes bob { from { transform: translateY(-14px) rotate(0deg); } to { transform: translateY(16px) rotate(14deg); } }
+
+/* sidebar showcase */
+.sbc { margin: 26px 4px 0; padding: 14px 10px 16px; border-radius: 18px; text-align: center; background: linear-gradient(160deg, rgba(90, 162, 255, 0.14), rgba(90, 162, 255, 0.04));
+  border: 1px solid rgba(90, 162, 255, 0.28); box-shadow: 0 4px 0 rgba(20, 50, 140, 0.45), 0 18px 26px -14px rgba(0, 0, 0, 0.6); }
+.sbc-3d { height: 108px; display: grid; place-items: center; }
+.sbc b { display: block; color: #fff; font-size: 14.5px; }
+.sbc small { color: var(--sbt); font-size: 11.5px; letter-spacing: 0.04em; }
+@media (max-height: 720px) { .sbc { display: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .c3d-mod svg, .c3d-mod .led,
+  .c3d-ring, .c3d-seg, .c3d-tag, .hero-3d::before, .hero-3d::after, #scene i::before { animation: none !important; }
+  .kpi, .gc, .step, .card, .hero, .strip > div { transform: none !important; }
+}
+
+
+/* ===== collar photo (replaces the CSS-3D ring after sign-in; add data-classic to keep the ring) ===== */
+.c3dp { position: relative; width: 150px; margin: 0 auto; perspective: 700px; }
+.c3dp.sm { width: 54px; }
+.c3dp.md { width: 150px; }
+.c3dp-img {
+  display: block; width: 100%; height: auto; user-select: none; -webkit-user-drag: none;
+  filter: drop-shadow(0 10px 12px rgba(2, 6, 32, 0.55)) drop-shadow(0 0 1px rgba(150, 180, 255, 0.5));
+  transform: rotateX(calc(var(--py, 0) * -14deg)) rotateY(calc(var(--px, 0) * 22deg));
+  transition: transform 0.35s var(--ease);
+  animation: c3dfloat 5s ease-in-out infinite alternate;
+}
+.c3dp.sm .c3dp-img { filter: drop-shadow(0 3px 4px rgba(2, 6, 32, 0.55)); animation: none; }
+@keyframes c3dfloat { from { translate: 0 -4px; } to { translate: 0 5px; } }
+.hero-3d .c3dp { width: 168px; }
+@media (prefers-reduced-motion: reduce) { .c3dp-img { animation: none !important; } }

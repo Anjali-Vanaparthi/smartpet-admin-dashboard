@@ -1,0 +1,109 @@
+/* ===== ANIMATION LAYER  ·  aurora background, entrances, spotlight, ripple, sliding highlights ===== */
+
+@property --ang { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@keyframes aurora {
+  0%   { transform: translate3d(-4%, -3%, 0) rotate(0deg) scale(1); }
+  50%  { transform: translate3d(5%, 4%, 0) rotate(8deg) scale(1.08); }
+  100% { transform: translate3d(-2%, 6%, 0) rotate(-6deg) scale(1.02); }
+}
+@keyframes spin { to { --ang: 360deg; } }
+@keyframes floaty { 50% { transform: translateY(-3px); } }
+@keyframes glowpulse { 50% { box-shadow: 0 8px 30px rgba(90, 162, 255, 0.55); } }
+@keyframes sheen { 0% { transform: translateX(-120%) skewX(-18deg); } 60%, 100% { transform: translateX(260%) skewX(-18deg); } }
+@keyframes heroFlow { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-14px); } }
+@keyframes riseIn { from { opacity: 0; transform: translateY(18px) scale(0.985); filter: blur(4px); } }
+@keyframes rpl { from { transform: scale(0); opacity: 0.45; } to { transform: scale(1); opacity: 0; } }
+@keyframes pop2 { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+
+/* ---- living background ---- */
+body::before {
+  content: ""; position: fixed; inset: -25%; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(38% 34% at 22% 28%, color-mix(in srgb, #5aa2ff 16%, transparent), transparent 70%),
+    radial-gradient(34% 30% at 78% 20%, color-mix(in srgb, #ff9a52 12%, transparent), transparent 70%),
+    radial-gradient(40% 36% at 62% 82%, color-mix(in srgb, #3b7ff0 12%, transparent), transparent 70%);
+  animation: aurora 28s ease-in-out infinite alternate;
+}
+:root[data-theme="light"] body::before { opacity: 0.55; }
+
+/* ---- smooth theme switch ---- */
+body, aside#sb, header.top, .card, .wrap, .kpi, .pills a, .subs, .subs a, .ib, #gs, input.q, thead th, tbody td {
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity;
+  transition-duration: 0.35s;
+}
+
+/* ---- sidebar ---- */
+.mnav { position: relative; }
+.mnav a { position: relative; z-index: 1; }
+.mnav a.on { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
+.nind { position: absolute; left: 0; right: 0; top: 0; z-index: 0; border-radius: 16px; pointer-events: none;
+  background: linear-gradient(135deg, rgba(90, 162, 255, 0.2), rgba(90, 162, 255, 0.08));
+  border: 1px solid rgba(90, 162, 255, 0.55); box-shadow: 0 0 26px rgba(90, 162, 255, 0.18);
+  transition: transform 0.55s cubic-bezier(0.34, 1.4, 0.5, 1), height 0.3s, opacity 0.3s; }
+.mnav a, .brand, .sbfoot { animation: slideIn 0.55s var(--ease) backwards; }
+.mnav a:nth-of-type(1) { animation-delay: 0.1s; } .mnav a:nth-of-type(2) { animation-delay: 0.18s; }
+.brand { animation-delay: 0.02s; } .sbfoot { animation-delay: 0.3s; }
+.logo { animation: floaty 4.5s ease-in-out infinite, glowpulse 3.5s ease-in-out infinite; }
+.mnav a .ni { transition: transform 0.3s var(--ease); }
+.mnav a:hover .ni { transform: scale(1.35) rotate(12deg); }
+
+/* ---- hero ---- */
+.hero { background-size: 200% 200%; animation: heroFlow 9s ease-in-out infinite alternate; }
+.hero::after { content: ""; position: absolute; top: 0; bottom: 0; width: 28%; left: 0; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.09), transparent); animation: sheen 6.5s ease-in-out infinite; }
+.hero h1 { animation: riseIn 0.7s var(--ease) 0.1s backwards; }
+.hero p { animation: riseIn 0.7s var(--ease) 0.25s backwards; }
+
+/* ---- entrances ---- */
+#view.enter .ubody > .card, #view.enter .ubody > .wrap { animation: riseIn 0.6s var(--ease) backwards; }
+#view.enter .ubody > :nth-child(1) { animation-delay: 0.05s; } #view.enter .ubody > :nth-child(2) { animation-delay: 0.14s; }
+#view.enter .ubody > :nth-child(3) { animation-delay: 0.23s; } #view.enter .ubody > :nth-child(4) { animation-delay: 0.32s; }
+.ubody { animation: none; }
+.uhead .grow > * { animation: riseIn 0.6s var(--ease) backwards; }
+.uhead h1 { animation-delay: 0.05s; } .uhead .meta { animation-delay: 0.15s; }
+.pills a { animation: pop2 0.5s var(--ease) backwards; }
+.pills a:nth-of-type(2) { animation-delay: 0.04s; } .pills a:nth-of-type(3) { animation-delay: 0.08s; } .pills a:nth-of-type(4) { animation-delay: 0.12s; }
+.pills a:nth-of-type(5) { animation-delay: 0.16s; } .pills a:nth-of-type(6) { animation-delay: 0.2s; } .pills a:nth-of-type(7) { animation-delay: 0.24s; }
+.pills a:nth-of-type(8) { animation-delay: 0.28s; }
+.subs a.on { animation: pop2 0.4s var(--ease); }
+.sect { animation: slideIn 0.5s var(--ease) backwards; }
+
+/* ---- avatar halo ---- */
+.uhead .av { position: relative; overflow: visible; }
+.uhead .av::before { content: ""; position: absolute; inset: -5px; border-radius: 25px; padding: 3px; pointer-events: none;
+  background: conic-gradient(from var(--ang), #5aa2ff, transparent 35%, #ff9a52 55%, transparent 80%, #5aa2ff);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: spin 5s linear infinite; }
+
+/* ---- spotlight on cards & tiles ---- */
+.card, .step { position: relative; }
+.card::after, .step::after, .pills a:not(.on)::after, .subs a:not(.on)::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), rgba(90, 162, 255, 0.13), transparent 65%); }
+.card:hover::after, .step:hover::after, .pills a:hover::after, .subs a:hover::after { opacity: 1; }
+.card.inner::after { background: radial-gradient(200px circle at var(--mx, 50%) var(--my, 50%), rgba(90, 162, 255, 0.12), transparent 65%); }
+.wrap { position: relative; }
+
+/* ---- ripple ---- */
+.ib, .pills a, .subs a, .chip-b, .hbtn { position: relative; overflow: hidden; }
+.pills a { overflow: visible; }
+.rpl { position: absolute; border-radius: 50%; pointer-events: none; background: radial-gradient(circle, rgba(90, 162, 255, 0.55), transparent 70%); animation: rpl 0.65s ease-out forwards; z-index: 3; }
+.pills a.on .rpl { background: radial-gradient(circle, rgba(255, 255, 255, 0.6), transparent 70%); }
+
+/* ---- table rows: slide-in accent on hover ---- */
+tbody tr { position: relative; }
+tbody tr.cl:hover td, tbody tr.fx:hover td { transform: translateX(2px); }
+tbody td { transition: transform 0.2s var(--ease), background-color 0.2s; }
+
+/* ---- buttons / pills lift ---- */
+.ib:hover { transform: translateY(-1px); }
+.ib:active, .pills a:active { transform: scale(0.95); }
+.chip-b { transition: transform 0.2s var(--ease), background 0.2s, color 0.2s, border-color 0.2s; }
+.chip-b:hover { transform: translateY(-2px); }
+.live { box-shadow: 0 0 0 0 rgba(90, 162, 255, 0.6); }
+
+@media (prefers-reduced-motion: reduce) {
+  body::before, .logo, .hero, .hero::after, .uhead .av::before, .mnav a, .brand, .sbfoot, .pills a, .sect { animation: none !important; }
+  .nind { transition: none; }
+}

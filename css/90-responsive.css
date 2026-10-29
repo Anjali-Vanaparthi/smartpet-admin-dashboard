@@ -1,0 +1,29 @@
+/* ===== RESPONSIVE  ·  tablet and mobile overrides ===== */
+
+@media (max-width: 960px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+  aside#sb {
+    position: fixed;
+    z-index: 40;
+    width: 280px;
+    transform: translateX(-100%);
+    transition: 0.2s;
+  }
+  body.open aside#sb {
+    transform: none;
+  }
+  #burger {
+    display: block;
+  }
+  header.top {
+    padding: 10px 14px;
+  }
+  #view {
+    padding: 16px;
+  }
+  .srch {
+    display: none;
+  }
+}

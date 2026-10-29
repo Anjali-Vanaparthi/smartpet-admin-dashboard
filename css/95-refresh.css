@@ -1,0 +1,7 @@
+/* ===== Refresh button + "Updated hh:mm:ss" label in the top bar ===== */
+.stamp { font-size: 12px; color: var(--mu); white-space: nowrap; }
+#rf { white-space: nowrap; }
+#rf.spin { opacity: 0.7; pointer-events: none; }
+#rf.spin::first-letter { display: inline-block; animation: rfspin 0.8s linear infinite; }
+@keyframes rfspin { to { transform: rotate(360deg); } }
+@media (max-width: 960px) { .stamp { display: none; } }

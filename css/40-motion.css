@@ -1,0 +1,131 @@
+/* ===== MOTION, EFFECTS & EXTRA NAVIGATION =====
+   Animations, hover effects, hero banner, filter chips, recent menu,
+   help dialog, scrim, back-to-top, sidebar collapse.
+   JS counterpart: js/35-motion.js */
+:root { --ease: cubic-bezier(0.2, 0.7, 0.2, 1); }
+[hidden] { display: none !important; }
+
+/* ---- keyframes ---- */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes rise   { from { opacity: 0; transform: translateY(14px) scale(0.98); } }
+@keyframes rowIn  { from { opacity: 0; transform: translateX(-8px); } }
+@keyframes pop    { from { opacity: 0; transform: scale(0.2); } }
+@keyframes ring   { 0% { opacity: 0.9; transform: scale(1); } 100% { opacity: 0; transform: scale(2); } }
+@keyframes blink  { 50% { opacity: 0.25; } }
+@keyframes livepulse { 70% { box-shadow: 0 0 0 8px rgba(74, 222, 128, 0); } 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); } }
+@keyframes drift  { to { transform: translate(-30px, 24px) scale(1.15); } }
+
+/* ---- top progress bar ---- */
+#bar { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 100; transform-origin: left;
+  transform: scaleX(0); opacity: 0; background: linear-gradient(90deg, #3b82f6, #06b6d4);
+  transition: transform 0.35s var(--ease), opacity 0.25s; }
+
+/* ---- page enter + staggered children (class toggled by Motion.done) ---- */
+#view.enter { animation: fadeUp 0.35s var(--ease); }
+#view.enter :is(.grid, .steps, .strip) > * { animation: rise 0.5s var(--ease) backwards; }
+#view.enter :is(.grid,.steps,.strip) > *:nth-child(1){animation-delay:0.04s}
+#view.enter :is(.grid,.steps,.strip) > *:nth-child(2){animation-delay:0.08s}
+#view.enter :is(.grid,.steps,.strip) > *:nth-child(3){animation-delay:0.12s}
+#view.enter :is(.grid,.steps,.strip) > *:nth-child(4){animation-delay:0.16s}
+#view.enter :is(.grid,.steps,.strip) > *:nth-child(5){animation-delay:0.20s}
+#view.enter :is(.grid,.steps,.strip) > *:nth-child(6){animation-delay:0.24s}
+#view.enter :is(.grid,.steps,.strip) > *:nth-child(7){animation-delay:0.28s}
+#view.enter :is(.grid,.steps,.strip) > *:nth-child(8){animation-delay:0.32s}
+#view.enter tbody tr:nth-child(-n + 14) { animation: rowIn 0.35s var(--ease) backwards; }
+#view.enter tbody tr:nth-child(1){animation-delay:0.15s}
+#view.enter tbody tr:nth-child(2){animation-delay:0.18s}
+#view.enter tbody tr:nth-child(3){animation-delay:0.21s}
+#view.enter tbody tr:nth-child(4){animation-delay:0.24s}
+#view.enter tbody tr:nth-child(5){animation-delay:0.27s}
+#view.enter tbody tr:nth-child(6){animation-delay:0.30s}
+#view.enter tbody tr:nth-child(7){animation-delay:0.33s}
+#view.enter tbody tr:nth-child(8){animation-delay:0.36s}
+#view.enter tbody tr:nth-child(9){animation-delay:0.39s}
+#view.enter tbody tr:nth-child(10){animation-delay:0.42s}
+#view.enter tbody tr:nth-child(11){animation-delay:0.45s}
+#view.enter tbody tr:nth-child(12){animation-delay:0.48s}
+#view.enter tbody tr:nth-child(13){animation-delay:0.51s}
+#view.enter tbody tr:nth-child(14){animation-delay:0.54s}
+.replay { animation: fadeUp 0.3s var(--ease); }
+
+/* ---- hover and press effects ---- */
+.card, .step, .gc { transition: background-color 0.3s, border-color 0.3s, color 0.3s, transform 0.22s var(--ease), box-shadow 0.22s var(--ease); }
+.gc:hover, .step:hover, .kpi:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12); }
+.ib { transition: background-color 0.3s, border-color 0.3s, color 0.3s, transform 0.12s; }
+.ib:active, .hbtn:active { transform: scale(0.96); }
+aside a { transition: background 0.15s, color 0.15s, transform 0.18s var(--ease); }
+aside a:hover { transform: translateX(3px); }
+tbody tr { transition: background-color 0.15s; }
+a.lk { background: linear-gradient(currentColor, currentColor) 0 100% / 0 1.5px no-repeat; transition: background-size 0.25s var(--ease); }
+a.lk:hover { background-size: 100% 1.5px; text-decoration: none; }
+.tabs button { transition: color 0.15s, border-color 0.2s; }
+body, header.top, aside#sb, .wrap, thead th, td, input, select, pre { transition: background-color 0.3s, border-color 0.3s, color 0.3s; }
+.kpi b { font-variant-numeric: tabular-nums; }
+.pill.cr::before, .badge::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; margin-right: 6px; vertical-align: 1px; animation: blink 1.4s infinite; }
+
+/* ---- hero banner ---- */
+.hero { position: relative; overflow: hidden; border-radius: 16px; padding: 28px 30px; margin-bottom: 18px; color: #fff;
+  background: linear-gradient(120deg, #0b1f3a 0%, #123a73 55%, #1d4ed8 100%); box-shadow: 0 10px 30px rgba(29, 78, 216, 0.25); }
+.hero > div:first-child { position: relative; z-index: 1; }
+.hero h1 { margin: 12px 0 6px; font-size: 28px; letter-spacing: -0.02em; }
+.hero p { margin: 0; max-width: 560px; color: #cbd9f2; }
+.hero-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+.hbtn { background: rgba(255, 255, 255, 0.12); color: #fff; border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 9px;
+  padding: 8px 14px; cursor: pointer; backdrop-filter: blur(4px); transition: 0.2s var(--ease); }
+.hbtn:hover { background: #fff; color: #0b1f3a; transform: translateY(-2px); }
+.chip { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; padding: 4px 11px; border-radius: 99px;
+  background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.2); }
+.live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #4ade80; animation: livepulse 1.8s infinite; }
+.hero-art span { position: absolute; border-radius: 50%; opacity: 0.28; background: radial-gradient(circle, #60a5fa, transparent 70%); animation: drift 14s ease-in-out infinite alternate; }
+.hero-art span:nth-child(1) { width: 260px; height: 260px; right: -60px; top: -80px; }
+.hero-art span:nth-child(2) { width: 180px; height: 180px; right: 140px; bottom: -90px; animation-duration: 18s; }
+.hero-art span:nth-child(3) { width: 120px; height: 120px; right: 30%; top: -40px; animation-duration: 11s; }
+
+/* ---- filter chips ---- */
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip-b { border: 1px solid var(--line); background: var(--panel); border-radius: 99px; padding: 5px 13px; cursor: pointer; font-size: 12.5px; transition: 0.15s; }
+.chip-b:hover { border-color: var(--ac); color: var(--ac); }
+.chip-b.on { background: var(--ac); border-color: var(--ac); color: #fff; }
+
+/* ---- topbar extras: back/forward, recent menu ---- */
+.navbtns { display: flex; gap: 4px; }
+.recent { position: relative; }
+#rcm { display: none; position: absolute; right: 0; top: 115%; min-width: 270px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 10px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18); padding: 4px; z-index: 30; }
+#rcm.open { display: block; animation: fadeUp 0.2s var(--ease); }
+#rcm div { padding: 8px 10px; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; gap: 14px; font-size: 13px; }
+#rcm div:hover { background: var(--ac2); }
+#rcm small { color: var(--mu); }
+
+/* ---- sidebar footer and collapse ---- */
+.sbfoot { position: sticky; bottom: -24px; margin: 18px -12px -24px; padding: 12px 18px; font-size: 11.5px; color: #7d8da8;
+  border-top: 1px solid rgba(255, 255, 255, 0.08); background: color-mix(in srgb, var(--sb) 92%, #000); line-height: 1.8; }
+kbd { font: 11px ui-monospace, Menlo, monospace; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line); background: var(--bg); color: var(--tx); }
+.sbfoot kbd { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.15); color: #cbd5e1; }
+.app { transition: grid-template-columns 0.3s var(--ease); }
+body.collapsed .app { grid-template-columns: 0 minmax(0, 1fr); }
+body.collapsed aside#sb { overflow: hidden; visibility: hidden; padding-inline: 0; transition: visibility 0s 0.3s; }
+
+/* ---- scrim (behind the mobile sidebar and the record drawer) ---- */
+#scrim { position: fixed; inset: 0; background: rgba(2, 8, 23, 0.45); opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 38; }
+body.open #scrim, #dr.o ~ #scrim { opacity: 1; pointer-events: auto; }
+
+/* ---- help dialog and back-to-top ---- */
+#help { position: fixed; inset: 0; display: none; place-items: center; background: rgba(2, 8, 23, 0.55); backdrop-filter: blur(3px); z-index: 90; }
+#help.open { display: grid; animation: fadeIn 0.2s; }
+.helpbox { width: min(420px, 92vw); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35); animation: rise 0.3s var(--ease); }
+.helpbox h3 { margin: 0 0 8px; font-size: 16px; }
+#totop { position: fixed; right: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); width: 42px; height: 42px; border-radius: 50%; border: 0;
+  background: var(--ac); color: #fff; font-size: 18px; cursor: pointer; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  opacity: 0; transform: translateY(12px); pointer-events: none; transition: 0.25s var(--ease); z-index: 30; }
+#totop.show { opacity: 1; transform: none; pointer-events: auto; }
+
+/* ---- map: one-off intro and pulsing selection ring ---- */
+svg.mp.intro circle[data-f] { transform-box: fill-box; transform-origin: center; animation: pop 0.45s var(--ease) backwards; }
+svg.mp.intro polyline { animation: fadeIn 0.9s ease backwards; }
+.pulse { transform-box: fill-box; transform-origin: center; animation: ring 1.8s ease-out infinite; }
+
+@media (max-width: 960px) { body.collapsed .app { grid-template-columns: 1fr; } .navbtns { display: none; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

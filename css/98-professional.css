@@ -1,0 +1,61 @@
+/* ===== PROFESSIONAL FINISH  ·  calm top bar, clean light theme, quieter surfaces (loads last) ===== */
+
+/* Light theme: flat, neutral canvas. No tinted wash, no aurora. */
+:root[data-theme="light"] body { background: var(--bg); }
+:root[data-theme="light"] body::before { display: none; }
+:root[data-theme="light"] .card, :root[data-theme="light"] .wrap { box-shadow: var(--sh); }
+:root[data-theme="light"] .hero { box-shadow: 0 8px 24px rgba(20, 50, 140, 0.15); }
+
+/* Dark theme: keep the glow but make it subtler */
+body::before { opacity: 0.7; }
+
+/* ---- top bar ---- */
+header.top {
+  height: 60px; padding: 0 28px; gap: 14px;
+  background: var(--panel); backdrop-filter: none;
+  border-bottom: 1px solid var(--line); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+}
+#burger { width: 36px; height: 36px; padding: 0; border-radius: 10px; font-size: 16px; display: grid; place-items: center; }
+#crumb { display: flex; align-items: center; gap: 2px; text-transform: none; letter-spacing: 0; font-size: 13.5px; font-weight: 500; color: var(--mu); }
+#crumb a { color: var(--mu); padding: 4px 8px; margin: 0; border-radius: 8px; }
+#crumb a:hover { background: var(--ac2); color: var(--tx); }
+#crumb i { font-size: 0; opacity: 1; margin: 0; width: 14px; height: 14px; display: inline-block;
+  background: currentColor; color: var(--line); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6 3l5 5-5 5' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6 3l5 5-5 5' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat; color: var(--mu); opacity: 0.55; }
+#crumb b { color: var(--tx); font-weight: 650; padding: 4px 8px; }
+
+.srch { width: 340px; }
+#gs { height: 38px; padding: 0 14px 0 38px; border-radius: 10px; background-color: var(--panel2); border: 1px solid var(--line); font-size: 13.5px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%239fb0e0' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='9' cy='9' r='5.5'/%3E%3Cpath d='M13.5 13.5L17 17'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: 12px center; background-size: 16px; }
+#gs:focus { background-color: var(--panel); }
+.srch::after { content: "/"; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--mu);
+  border: 1px solid var(--line); border-radius: 5px; padding: 0 6px; background: var(--panel); pointer-events: none; }
+#th { width: 38px; height: 38px; padding: 0; border-radius: 10px; display: grid; place-items: center; font-size: 17px; }
+#th::before { content: "☀"; }
+:root[data-theme="light"] #th::before { content: "☾"; }
+
+/* ---- page structure ---- */
+#view { padding: 28px 32px 56px; }
+h1.t { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+.sub { font-size: 14px; color: var(--mu); }
+.pgh { margin-bottom: 22px; }
+.card, .wrap { border-radius: 14px; }
+.card { padding: 18px 20px; }
+.kpi { border-radius: 14px; }
+.kpi b { font-size: 28px; }
+.hero { border-radius: 16px; padding: 26px 30px; }
+.hero h1 { font-size: 26px; }
+.sect { color: var(--mu); font-weight: 600; letter-spacing: 0.1em; }
+.uhead h1 { font-size: 30px; }
+.uhead .av { width: 60px; height: 60px; font-size: 21px; border-radius: 16px; }
+.uhead .av::before { border-radius: 20px; }
+thead th { font-size: 11px; letter-spacing: 0.06em; }
+th, td { padding: 10px 14px; }
+.pills a { padding: 9px 16px; font-size: 14px; }
+aside#sb a { padding: 11px 14px; font-size: 14.5px; border-radius: 12px; }
+.nind { border-radius: 12px; }
+.ib { border-radius: 10px; }
+.ib:hover { box-shadow: none; border-color: var(--ac); }
+.kpi:hover, .gc:hover { transform: translateY(-2px); box-shadow: var(--sh); }
+@media (max-width: 960px) { .srch { display: none; } header.top { padding: 0 14px; } }
