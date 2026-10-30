@@ -3797,16 +3797,48 @@ async function fixPage(f, u, i) {
     fillOpacity: 0.13,
     clickable: false,
   });
-  const me = new google.maps.Marker({
-    map,
-    position: here,
-    title: `${pName(f.pet_id)} · Fix #${f.id}`,
-    icon: { ...dot(SC[f.source], 10), strokeColor: "#fff", strokeWeight: 3 },
-    zIndex: 1000,
-  });
-  const info = new google.maps.InfoWindow({
-    content: `<b>${esc(pName(f.pet_id))}</b> · ${dt(f.fix_timestamp).slice(-5)}<br>± ${f.accuracy_m} m · ${f.source}`,
-  });
+  // const me = new google.maps.Marker({
+  //   map,
+  //   position: here,
+  //   title: `${pName(f.pet_id)} · Fix #${f.id}`,
+  //   icon: { ...dot(SC[f.source], 10), strokeColor: "#fff", strokeWeight: 3 },
+  //   zIndex: 1000,
+  // });
+  // const info = new google.maps.InfoWindow({
+  //   content: `<b>${esc(pName(f.pet_id))}</b> · ${dt(f.fix_timestamp).slice(-5)}<br>± ${f.accuracy_m} m · ${f.source}`,
+  // });
+
+  
+const deviceName = f.device_id || "Unknown Device";
+
+const me = new google.maps.Marker({
+  map,
+  position: here,
+  title: `${deviceName} · Fix #${f.id}`,
+  icon: { ...dot(SC[f.source], 10), strokeColor: "#fff", strokeWeight: 3 },
+  zIndex: 1000,
+});
+
+const info = new google.maps.InfoWindow({
+  content: `
+    <div style="
+      background: #ffffff;
+      color: #000000;
+      padding: 10px 12px;
+      min-width: 150px;
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.6;
+    ">
+      <div style="color: #000000; font-weight: 700;">
+        ${esc(deviceName)} · ${dt(f.fix_timestamp).slice(-5)}
+      </div>
+      <div style="color: #333333;">
+        ± ${f.accuracy_m} m · ${esc(f.source || "Unknown")}
+      </div>
+    </div>
+  `,
+});
   info.open({ map, anchor: me });
   me.addListener("click", () => info.open({ map, anchor: me }));
 
