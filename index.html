@@ -1899,8 +1899,8 @@ const S = {
   ],
   location_fixes: [
     "Location",
-    "id:int,device_id:text,user_id:uuid,pet_id:uuid,latitude:num,longitude:num,accuracy_m:num,source:text,fix_timestamp:ts,created_at:ts",
-    "user_id>users,pet_id>pets",
+    "id:int,device_id:text,user_id:uuid,latitude:num,longitude:num,accuracy_m:num,source:text,fix_timestamp:ts,created_at:ts",
+    "user_id>users",
   ],
   devices: [
     "Location",
@@ -1978,9 +1978,13 @@ const D = {
     "Daily step targets and achievement. goal_met is a generated column.",
     "PK daily_step_goals_pkey (id);UNIQUE daily_step_goals_local_id_unique (local_id)",
   ],
+  // location_fixes: [
+  //   "Position fixes reported by devices via GNSS, LTE or Wi-Fi. Now linked to the owning user and pet (proposed).",
+  //   "PK location_fixes_pkey (id);INDEX idx_location_device_time (device_id, fix_timestamp DESC);INDEX idx_location_user_time (user_id, fix_timestamp DESC) [proposed];INDEX idx_location_pet_time (pet_id, fix_timestamp DESC) [proposed]",
+  // ],
   location_fixes: [
-    "Position fixes reported by devices via GNSS, LTE or Wi-Fi. Now linked to the owning user and pet (proposed).",
-    "PK location_fixes_pkey (id);INDEX idx_location_device_time (device_id, fix_timestamp DESC);INDEX idx_location_user_time (user_id, fix_timestamp DESC) [proposed];INDEX idx_location_pet_time (pet_id, fix_timestamp DESC) [proposed]",
+  "Position fixes reported by devices via GNSS, LTE or Wi-Fi. Linked to the owning user.",
+  "PK location_fixes_pkey (id);INDEX idx_location_device_time (device_id, fix_timestamp DESC);INDEX idx_location_user_time (user_id, fix_timestamp DESC)",
   ],
   devices: [
     "Device registry mapping each collar's device_id to its owner and pet. Proposed new table.",
