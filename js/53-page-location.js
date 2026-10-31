@@ -103,6 +103,9 @@ async function locPage(u, i) {
   draw();
 }
 
+/* remembered across pages: plot the fixes of ALL devices of this user (default) or only the device of the fix you opened */
+let FIX_ALL_DEVICES = true;
+
 /* Step 2: one location shown on the map */
 /** Step 4: one location fix on the map, with movement and signal data. */
 async function fixPage(f, u, i) {
@@ -119,7 +122,7 @@ async function fixPage(f, u, i) {
   );
   const seq = lf
   //     .filter((x) => x.pet_id === f.pet_id)
-      .filter((x) => x.user_id === f.user_id && x.device_id === f.device_id)
+      .filter((x) => x.user_id === f.user_id && (FIX_ALL_DEVICES || x.device_id === f.device_id))
       .sort((a, b) => a.fix_timestamp - b.fix_timestamp),
     k = seq.findIndex((x) => x.id === f.id),
     prev = seq[k - 1],
@@ -152,7 +155,23 @@ async function fixPage(f, u, i) {
     firstOf = (k) => seq.find((x) => dkey(x.fix_timestamp) === k),
     prevDay = di > 0 ? firstOf(days[di - 1]) : null,
     nextDay = di < days.length - 1 ? firstOf(days[di + 1]) : null,
-    dayLabel = new Date(f.fix_timestamp).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+    dayLabel = new Date(f.fix_timestamp).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" }),
+    // one entry per day that has data: the day picker in the page header
+    dayList = days.map((k) => {
+      const list = seq.filter((x) => dkey(x.fix_timestamp) === k);
+      return {
+        k,
+        id: list[0].id,
+        n: list.length,
+        g: list.filter((x) => x.source === "GNSS").length,
+        label: new Date(list[0].fix_timestamp).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" }),
+      };
+    }),
+    // fixes from this user's OTHER devices on the same day (they are left out unless "All devices" is ticked)
+    devCount = new Set(lf.filter((x) => x.user_id === f.user_id).map((x) => x.device_id)).size,
+    moreToday = FIX_ALL_DEVICES
+      ? 0
+      : lf.filter((x) => x.user_id === f.user_id && x.device_id !== f.device_id && dkey(x.fix_timestamp) === dk).length;
   const row = (a, b) => `<div class="row"><span>${a}</span><span>${b ?? "—"}</span></div>`,
     hd = (t) => `<h3 style="margin:14px 0 2px">${t}</h3>`;
   const mv = (o, label) => {
@@ -165,8 +184,8 @@ async function fixPage(f, u, i) {
     );
   };
   $("#view").innerHTML =
-    `<div class="pgh"><div><h1 class="t">Fix #${f.id} · 🐾 ${esc(who)}</h1><div class="sub">${esc(u.name)} · ${dt(f.fix_timestamp)} · ${f.latitude}, ${f.longitude}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="ib" ${prevDay ? `data-fx="${prevDay.id}"` : "disabled"}>‹ Previous day</button><span style="font-size:13px;color:var(--mu);text-align:center"><b style="color:var(--tx)">${dayLabel}</b><br>${dayFixes.length} fixes · day ${di + 1} of ${days.length}</span><button class="ib" ${nextDay ? `data-fx="${nextDay.id}"` : "disabled"}>Next day ›</button></div></div>
-<div class="mg"><div><div class="tool"><label class="ck"><input type="checkbox" id="mo" checked> Other fixes</label><label class="ck"><input type="checkbox" id="mz" checked> Safe zones</label><label class="ck"><input type="checkbox" id="ma" checked> Alerts</label><label class="ck"><input type="checkbox" id="mg" checked> GNSS route</label><span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap"><button class="ib" id="zi">＋</button><button class="ib" id="zo">－</button><button class="ib" id="zc">Centre on fix</button><button class="ib" id="zt">Fit whole day</button><button class="ib" id="zg" title="Show only the GNSS fixes of this day, joined by one line">GNSS only</button></span></div>
+    `<div class="pgh"><div><h1 class="t">Fix #${f.id} · 🐾 ${esc(who)}</h1><div class="sub">${esc(u.name)} · ${dt(f.fix_timestamp)} · ${f.latitude}, ${f.longitude}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="ib" ${prevDay ? `data-fx="${prevDay.id}"` : "disabled"}>‹ Previous day</button><span style="font-size:13px;color:var(--mu);text-align:center"><select id="dsel" title="Jump to any day that has location data">${dayList.map((d) => `<option value="${d.id}" ${d.k === dk ? "selected" : ""}>${d.label} · ${d.n} fix${d.n === 1 ? "" : "es"}${d.g ? " (" + d.g + " GNSS)" : ""}</option>`).join("")}</select><br>day ${di + 1} of ${days.length}</span><button class="ib" ${nextDay ? `data-fx="${nextDay.id}"` : "disabled"}>Next day ›</button></div></div>
+<div class="mg"><div><div class="tool"><label class="ck"><input type="checkbox" id="mo" checked> Other fixes</label><label class="ck"><input type="checkbox" id="mz" checked> Safe zones</label><label class="ck"><input type="checkbox" id="ma" checked> Alerts</label><label class="ck"><input type="checkbox" id="mg" checked> GNSS route</label>${devCount > 1 ? `<label class="ck" title="Untick to plot only ${esc(f.device_id || "this device")}"><input type="checkbox" id="md" ${FIX_ALL_DEVICES ? "checked" : ""}> All devices (${devCount})</label>` : ""}<span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap"><button class="ib" id="zi">＋</button><button class="ib" id="zo">－</button><button class="ib" id="zc">Centre on fix</button><button class="ib" id="zt">Fit whole day</button><button class="ib" id="zg" title="Show only the GNSS fixes of this day, joined by one line">GNSS only</button></span></div>
  <div id="gi" class="mu" style="margin:-2px 0 8px"></div>
  <div id="mp" style="height:496px;border-radius:12px;overflow:hidden;background:var(--panel);border:1px solid var(--line)"></div>
  <div class="leg" style="margin-top:8px"><span><i style="background:#1a73e8;border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></i>GNSS fix</span><span><i style="background:#0f9d74;border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></i>Other source (cell, Wi-Fi)</span><span><i style="background:#1a73e8;height:3px;border-radius:2px;width:16px"></i>GNSS route</span><span><i style="background:#dc2626;border-radius:2px;transform:rotate(45deg)"></i>Alert</span><span><i style="background:#16a34a;border-radius:2px"></i>Safe zone</span><span id="rd" style="margin-left:auto;font-variant-numeric:tabular-nums"></span></div>
@@ -259,6 +278,7 @@ async function fixPage(f, u, i) {
   };
 
   /* ---------- numbering: time order over the whole day, or among GNSS fixes only ---------- */
+  const deviceName0 = f.device_id || "this device";
   const gnssDay = dayFixes.filter((x) => isG(x.source));
   const allNo = new Map(dayFixes.map((x, i) => [x.id, i + 1]));
   const gnssNo = new Map(gnssDay.map((x, i) => [x.id, i + 1]));
@@ -268,24 +288,35 @@ async function fixPage(f, u, i) {
     always || dayFixes.length <= 40 ? { text: String(noOf(x)), color: "#fff", fontSize: size, fontWeight: "700" } : null;
 
   /* ---------- all GNSS fixes of the day, joined by one blue line with direction arrows ---------- */
-  const route = new google.maps.Polyline({
-    map,
-    path: gnssDay.map(ll),
-    strokeColor: BLUE,
-    strokeOpacity: 0.9,
-    strokeWeight: 4,
-    icons: [
-      {
-        icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 3, fillColor: BLUE, fillOpacity: 1, strokeColor: "#fff", strokeWeight: 1 },
-        offset: "50%",
-        repeat: "120px",
-      },
-    ],
-  });
-  const routeM = gnssDay.reduce((s, x, i) => (i ? s + hav(gnssDay[i - 1], x) : s), 0);
-  q("#gi").textContent = gnssDay.length
-    ? `GNSS today: ${gnssDay.length} fixes · ${routeM >= 1000 ? (routeM / 1000).toFixed(2) + " km" : Math.round(routeM) + " m"} along the route`
-    : "No GNSS fixes on this day";
+  const devs = [...new Set(gnssDay.map((x) => x.device_id))];
+  const routes = devs.map(
+    (d) =>
+      new google.maps.Polyline({
+        map,
+        path: gnssDay.filter((x) => x.device_id === d).map(ll),
+        strokeColor: BLUE,
+        strokeOpacity: 0.9,
+        strokeWeight: 4,
+        icons: [
+          {
+            icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 3, fillColor: BLUE, fillOpacity: 1, strokeColor: "#fff", strokeWeight: 1 },
+            offset: "50%",
+            repeat: "120px",
+          },
+        ],
+      }),
+  );
+  const routeM = devs.reduce((t, d) => {
+    const l = gnssDay.filter((x) => x.device_id === d);
+    return t + l.reduce((s, x, i) => (i ? s + hav(l[i - 1], x) : s), 0);
+  }, 0);
+  q("#gi").textContent =
+    (gnssDay.length
+      ? `GNSS today: ${gnssDay.length} fix${gnssDay.length === 1 ? "" : "es"} · ${routeM >= 1000 ? (routeM / 1000).toFixed(2) + " km" : Math.round(routeM) + " m"} along the route`
+      : "No GNSS fixes on this day") +
+    (dayFixes.length < 2
+      ? `. Only ${dayFixes.length} fix is stored for ${deviceName0} on this day, so there is nothing to connect. Pick another day above${moreToday ? " or tick All devices" : ""}.`
+      : "");
 
   /* ---------- accuracy ring of the selected fix: blue for GNSS, green otherwise ---------- */
   const ring = isG(f.source) ? BLUE : GREEN;
@@ -386,7 +417,7 @@ async function fixPage(f, u, i) {
       m.setLabel(lab(x, "10px"));
     });
     me.setLabel(lab(f, "12px", true));
-    route.setMap(on.g ? map : null);
+    routes.forEach((r) => r.setMap(on.g ? map : null));
   };
 
   /* ---------- fit helpers ---------- */
@@ -436,7 +467,7 @@ async function fixPage(f, u, i) {
     gOnly = !gOnly;
     zg.classList.toggle("on", gOnly);
     zg.textContent = gOnly ? "All sources" : "GNSS only";
-    route.setOptions({ strokeWeight: gOnly ? 5 : 4 });
+    routes.forEach((r) => r.setOptions({ strokeWeight: gOnly ? 5 : 4 }));
     if (gOnly) {
       on.g = true;
       q("#mg").checked = true;
@@ -444,6 +475,15 @@ async function fixPage(f, u, i) {
     applyVis();
     gOnly ? fitList(gnssDay) : fitTrail();
   };
+
+  // day picker + "All devices"
+  q("#dsel").onchange = (e) => go("fix-" + e.target.value);
+  if (q("#md")) {
+    q("#md").onchange = (e) => {
+      FIX_ALL_DEVICES = e.target.checked;
+      fixPage(f, u, i); // redraw with the other devices included (or removed)
+    };
+  }
 
   // live coordinates under the cursor
   map.addListener("mousemove", (e) => {
