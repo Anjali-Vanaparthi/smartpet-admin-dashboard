@@ -3709,7 +3709,7 @@ async function fixPage(f, u, i) {
     `<div class="pgh"><div><h1 class="t">Fix #${f.id} · 🐾 ${esc(who)}</h1><div class="sub">${esc(u.name)} · ${dt(f.fix_timestamp)} · ${f.latitude}, ${f.longitude}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="ib" ${prevDay ? `data-fx="${prevDay.id}"` : "disabled"}>‹ Previous day</button><span style="font-size:13px;color:var(--mu);text-align:center"><b style="color:var(--tx)">${dayLabel}</b><br>${dayFixes.length} fixes · day ${di + 1} of ${days.length}</span><button class="ib" ${nextDay ? `data-fx="${nextDay.id}"` : "disabled"}>Next day ›</button></div></div>
  <div class="mg"><div><div class="tool"><label class="ck"><input type="checkbox" id="mo" checked> Other fixes</label><label class="ck"><input type="checkbox" id="mz" checked> Safe zones</label><label class="ck"><input type="checkbox" id="ma" checked> Alerts</label><span style="margin-left:auto;display:flex;gap:6px"><button class="ib" id="zi">＋</button><button class="ib" id="zo">－</button><button class="ib" id="zc">Centre on fix</button><button class="ib" id="zt">Fit whole day</button></span></div>
  <div id="mp" style="height:496px;border-radius:12px;overflow:hidden;background:var(--panel);border:1px solid var(--line)"></div>
- <div class="leg" style="margin-top:8px"><span><i style="background:#0f9d74;border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></i>Selected fix</span><span><i style="background:#34d3a0;border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></i>Other fixes today (numbered by time)</span><span><i style="background:#dc2626;border-radius:2px;transform:rotate(45deg)"></i>Alert</span><span><i style="background:#16a34a;border-radius:2px"></i>Safe zone</span><span id="rd" style="margin-left:auto;font-variant-numeric:tabular-nums"></span></div>
+ <div class="leg" style="margin-top:8px"><span><i style="background:#1a73e8;border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></i>GNSS fix (joined by line)</span><span><i style="background:#0f9d74;border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></i>Cell / Wi-Fi fix</span><span><i style="background:#dc2626;border-radius:2px;transform:rotate(45deg)"></i>Alert</span><span><i style="background:#16a34a;border-radius:2px"></i>Active safe zone</span><span><i style="background:#dc2626;border-radius:2px"></i>Inactive safe zone</span><span id="rd" style="margin-left:auto;font-variant-numeric:tabular-nums"></span></div>
  <div class="pager" style="margin-top:6px">Click any other point to jump to that fix. Drag to pan, scroll to zoom.</div></div>
  <div><div class="card"><h3>Fix details</h3>${row("Fix ID", f.id) + row("Pet", esc(who)) + row("User", esc(u.name)) + row("Device", f.device_id) + row("Time", dt(f.fix_timestamp)) + row("Latitude, longitude", f.latitude + ", " + f.longitude) + row("Accuracy", "± " + f.accuracy_m + " m") + row("Source", spill(f.source)) + row("Safe-zone status", zin ? `<span class="pill ok">Inside ${esc(zin)}</span>` : '<span class="pill wa">Outside safe zones</span>')}</div>
  <div class="card" style="margin-top:14px"><h3>Movement · fix ${k + 1} of ${seq.length}</h3>${mv(prev, "From previous fix") + mv(next, "To next fix")}</div>
@@ -3845,28 +3845,21 @@ const me = new google.maps.Marker({
   zIndex: 1000,
 });
 
-const info = new google.maps.InfoWindow({
-  content: `
-    <div style="
-      background: #ffffff;
-      color: #000000;
-      padding: 10px 12px;
-      min-width: 150px;
-      font-family: Arial, sans-serif;
-      font-size: 13px;
-      line-height: 1.6;
-    ">
-      <div style="color: #000000; font-weight: 700;">
-        ${esc(deviceName)} · ${dt(f.fix_timestamp).slice(-5)}
-      </div>
-      <div style="color: #333333;">
-        ± ${f.accuracy_m} m · ${esc(f.source || "Unknown")}
-      </div>
-    </div>
-  `,
-});
-  info.open({ map, anchor: me });
-  me.addListener("click", () => info.open({ map, anchor: me }));
+  // popup on the latest fix of the day = the current location
+  const last = dayFixes[dayFixes.length - 1];
+  const lastScale = last.id === f.id ? 1.4 : dayFixes.length <= 40 ? 0.9 : 0.6;
+  const info = new google.maps.InfoWindow({
+    position: ll(last),
+    pixelOffset: new google.maps.Size(0, -(24 * lastScale + 6)),
+    content: `
+    <div style="color:#000;font-family:Arial,sans-serif;font-size:13px;line-height:1.6;min-width:170px;padding:2px 4px">
+      <div style="font-weight:700;color:${isG(last.source) ? BLUE : GREEN}">● Current location</div>
+      <div style="font-weight:700">${esc(f.device_id || "Unknown Device")} · ${dt(last.fix_timestamp)}</div>
+      <div style="color:#333">± ${last.accuracy_m} m · ${esc(last.source || "Unknown")}</div>
+    </div>`,
+  });
+  info.open({ map });
+  me.addListener("click", () => info.open({ map }));
 
   // every other fix of the same day (click one to open that fix)
   const others = dayFixes
@@ -3875,7 +3868,7 @@ const info = new google.maps.InfoWindow({
       const m = new google.maps.Marker({
         map,
         position: ll(x),
-        icon: pin(false, dayFixes.length <= 40 ? 0.9 : 0.6),
+        icon: pin(false, dayFixes.length <= 40 ? 0.9 : 0.6, x.source),
         label: numLabel(i + 1),
         title: `#${i + 1} · Fix #${x.id} · ${x.source} · ± ${x.accuracy_m} m · ${dt(x.fix_timestamp)}`,
       });
@@ -3889,10 +3882,10 @@ const info = new google.maps.InfoWindow({
     const act = z.is_active,
       style = {
         map,
-        strokeColor: act ? "#16a34a" : "#64748b",
+        strokeColor: act ? "#16a34a" : "#dc2626",
         strokeWeight: 2,
-        fillColor: act ? "#16a34a" : "#64748b",
-        fillOpacity: act ? 0.2 : 0.08,
+        fillColor: act ? "#16a34a" : "#dc2626",
+        fillOpacity: act ? 0.22 : 0.12,
         clickable: false,
       };
     if (z.shape === "rectangle") {
