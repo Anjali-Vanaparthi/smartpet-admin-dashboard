@@ -3558,6 +3558,10 @@ const zstat = (f, zs) => {
   const ins = zs.filter((z) => z.user_id === f.user_id && z.is_active && inZone(f, z));
   return ins.length ? [...new Set(ins.map((z) => z.name))].join(", ") : null;
 };
+/* one colour per location source, used by pins, routes, the status line and the legend */
+const SRCCOL = { GNSS: "#1a73e8", SCELL: "#0f9d74", MCELL: "#7c3aed", WIFI: "#d97706" },
+  srcCol = (s) => SRCCOL[s] || "#64748b",
+  SRC_ORDER = ["GNSS", "SCELL", "MCELL", "WIFI"];
 const spill = (x) =>
   `<span class="pill" style="background:${SC[x]}22;color:${SC[x]}">${x}</span>`;
 
@@ -3702,7 +3706,11 @@ async function fixPage(f, u, i) {
         k,
         id: list[0].id,
         n: list.length,
-        g: list.filter((x) => x.source === "GNSS").length,
+        mix: SRC_ORDER.concat([...new Set(list.map((x) => x.source))].filter((s) => s && !SRC_ORDER.includes(s)))
+          .map((s) => [s, list.filter((x) => x.source === s).length])
+          .filter((a) => a[1])
+          .map((a) => a[1] + " " + a[0])
+          .join(" · "),
         label: new Date(list[0].fix_timestamp).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" }),
       };
     }),
@@ -3713,7 +3721,8 @@ async function fixPage(f, u, i) {
       : lf.filter((x) => x.user_id === f.user_id && x.device_id !== f.device_id && dkey(x.fix_timestamp) === dk).length;
   // latest fix of the day = the "current location", shown as plain text above the map at all times
   const lastFx = dayFixes[dayFixes.length - 1] || f,
-    lastCol = lastFx.source === "GNSS" ? "#1a73e8" : "#0f9d74";
+    lastCol = srcCol(lastFx.source),
+    srcList = SRC_ORDER.concat([...new Set(dayFixes.map((x) => x.source))].filter((s) => s && !SRC_ORDER.includes(s))).filter((s) => dayFixes.some((x) => x.source === s));
   const row = (a, b) => `<div class="row"><span>${a}</span><span>${b ?? "—"}</span></div>`,
     hd = (t) => `<h3 style="margin:14px 0 2px">${t}</h3>`;
   const mv = (o, label) => {
@@ -3726,12 +3735,12 @@ async function fixPage(f, u, i) {
     );
   };
   $("#view").innerHTML =
-    `<div class="pgh"><div><h1 class="t">Fix #${f.id} · 🐾 ${esc(who)}</h1><div class="sub">${esc(u.name)} · ${dt(f.fix_timestamp)} · ${f.latitude}, ${f.longitude}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="ib" ${prevDay ? `data-fx="${prevDay.id}"` : "disabled"}>‹ Previous day</button><span style="font-size:13px;color:var(--mu);text-align:center"><select id="dsel" title="Jump to any day that has location data">${dayList.map((d) => `<option value="${d.id}" ${d.k === dk ? "selected" : ""}>${d.label} · ${d.n} fix${d.n === 1 ? "" : "es"}${d.g ? " (" + d.g + " GNSS)" : ""}</option>`).join("")}</select><br>day ${di + 1} of ${days.length}</span><button class="ib" ${nextDay ? `data-fx="${nextDay.id}"` : "disabled"}>Next day ›</button></div></div>
-<div class="mg"><div><div class="tool"><label class="ck"><input type="checkbox" id="mo" checked> Other fixes</label><label class="ck"><input type="checkbox" id="mz" checked> Safe zones</label><label class="ck"><input type="checkbox" id="ma" checked> Alerts</label><label class="ck"><input type="checkbox" id="mg" checked> GNSS route</label>${devCount > 1 ? `<label class="ck" title="Untick to plot only ${esc(f.device_id || "this device")}"><input type="checkbox" id="md" ${FIX_ALL_DEVICES ? "checked" : ""}> All devices (${devCount})</label>` : ""}<span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap"><button class="ib" id="zi">＋</button><button class="ib" id="zo">－</button><button class="ib" id="zc">Centre on fix</button><button class="ib" id="zt">Fit whole day</button><button class="ib" id="zg" title="Show only the GNSS fixes of this day, joined by one line">GNSS only</button></span></div>
+    `<div class="pgh"><div><h1 class="t">Fix #${f.id} · 🐾 ${esc(who)}</h1><div class="sub">${esc(u.name)} · ${dt(f.fix_timestamp)} · ${f.latitude}, ${f.longitude}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="ib" ${prevDay ? `data-fx="${prevDay.id}"` : "disabled"}>‹ Previous day</button><span style="font-size:13px;color:var(--mu);text-align:center"><select id="dsel" title="Jump to any day that has location data">${dayList.map((d) => `<option value="${d.id}" ${d.k === dk ? "selected" : ""}>${d.label} · ${d.n} fix${d.n === 1 ? "" : "es"}${d.mix ? " (" + d.mix + ")" : ""}</option>`).join("")}</select><br>day ${di + 1} of ${days.length}</span><button class="ib" ${nextDay ? `data-fx="${nextDay.id}"` : "disabled"}>Next day ›</button></div></div>
+<div class="mg"><div><div class="tool"><label class="ck"><input type="checkbox" id="mo" checked> Other fixes</label><label class="ck"><input type="checkbox" id="mz" checked> Safe zones</label><label class="ck"><input type="checkbox" id="ma" checked> Alerts</label><label class="ck"><input type="checkbox" id="mg" checked> Routes</label>${devCount > 1 ? `<label class="ck" title="Untick to plot only ${esc(f.device_id || "this device")}"><input type="checkbox" id="md" ${FIX_ALL_DEVICES ? "checked" : ""}> All devices (${devCount})</label>` : ""}<span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap"><button class="ib" id="zi">＋</button><button class="ib" id="zo">－</button><button class="ib" id="zc">Centre on fix</button><button class="ib" id="zt">Fit whole day</button><select id="zsrc" title="Show one source only (GNSS, SCELL, MCELL), joined by its own route"><option value="">All sources</option>${srcList.map((s) => `<option value="${s}">${s} only (${dayFixes.filter((x) => x.source === s).length})</option>`).join("")}</select></span></div>
  <div id="cs" style="width:fit-content;max-width:100%;margin:0 0 6px;font-size:13px;line-height:1.5;color:var(--tx)"><b style="color:${lastCol}">● Current location</b> · ${esc(lastFx.device_id || "Unknown Device")} · ${dt(lastFx.fix_timestamp)} · ± ${lastFx.accuracy_m} m · ${esc(lastFx.source || "Unknown")}</div>
  <div id="gi" class="mu" style="width:fit-content;max-width:100%;margin:0 0 8px"></div>
  <div id="mp" style="height:496px;border-radius:12px;overflow:hidden;background:var(--panel);border:1px solid var(--line)"></div>
- <div class="leg" style="margin-top:8px"><span><i style="background:#1a73e8;border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></i>GNSS fix</span><span><i style="background:#0f9d74;border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></i>Other source (cell, Wi-Fi)</span><span><i style="background:#1a73e8;height:3px;border-radius:2px;width:16px"></i>GNSS route</span><span><i style="background:#dc2626;border-radius:2px;transform:rotate(45deg)"></i>Alert</span><span><i style="background:#16a34a;border-radius:2px"></i>Safe zone</span><span id="rd" style="margin-left:auto;font-variant-numeric:tabular-nums"></span></div>
+ <div class="leg" style="margin-top:8px">${srcList.map((s) => `<span><i style="background:${srcCol(s)};border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></i>${esc(s)} fix</span><span><i style="background:${srcCol(s)};height:3px;border-radius:2px;width:16px"></i>${esc(s)} route</span>`).join("")}<span><i style="background:#dc2626;border-radius:2px;transform:rotate(45deg)"></i>Alert</span><span><i style="background:#16a34a;border-radius:2px"></i>Safe zone</span><span id="rd" style="margin-left:auto;font-variant-numeric:tabular-nums"></span></div>
  <div class="pager" style="margin-top:6px">Hover a pin for details, click it to open that fix. Drag to pan, scroll to zoom.</div></div>
  <div><div class="card"><h3>Fix details</h3>${row("Fix ID", f.id) + row("Pet", esc(who)) + row("User", esc(u.name)) + row("Device", f.device_id) + row("Time", dt(f.fix_timestamp)) + row("Latitude, longitude", f.latitude + ", " + f.longitude) + row("Accuracy", "± " + f.accuracy_m + " m") + row("Source", spill(f.source)) + row("Safe-zone status", zin ? `<span class="pill ok">Inside ${esc(zin)}</span>` : '<span class="pill wa">Outside safe zones</span>')}</div>
  <div class="card" style="margin-top:14px"><h3>Movement · fix ${k + 1} of ${seq.length}</h3>${mv(prev, "From previous fix") + mv(next, "To next fix")}</div>
@@ -3787,18 +3796,22 @@ async function fixPage(f, u, i) {
     gestureHandling: "greedy", // wheel zooms, drag pans, no ctrl-key needed
   });
 
-  /* ---------- colours: GNSS = blue, every other source = green ---------- */
-  const GREEN = "#0f9d74", GREEN_D = "#0a6e52", GREEN_L = "#34d3a0";
-  const BLUE = "#1a73e8", BLUE_D = "#0b4fb3", BLUE_L = "#5b9cf5";
-  const isG = (s) => s === "GNSS";
+  /* ---------- colours: one per source (GNSS blue, SCELL green, MCELL purple, Wi-Fi amber) ---------- */
+  const PAL = {
+    GNSS: ["#1a73e8", "#0b4fb3", "#5b9cf5"],
+    SCELL: ["#0f9d74", "#0a6e52", "#34d3a0"],
+    MCELL: ["#7c3aed", "#5b21b6", "#a78bfa"],
+    WIFI: ["#d97706", "#92400e", "#fbbf24"],
+  };
+  const pal = (s) => PAL[s] || ["#64748b", "#334155", "#94a3b8"]; // [main, dark, light]
   const pin = (sel, scale, src) => {
-    const g = isG(src);
+    const [pc, pd, pl] = pal(src);
     return {
       path: "M0,0 C-4,-10 -12,-14 -12,-24 A12,12 0 1,1 12,-24 C12,-14 4,-10 0,0 Z",
       scale,
-      fillColor: sel ? (g ? BLUE : GREEN) : g ? BLUE_L : GREEN_L,
+      fillColor: sel ? pc : pl,
       fillOpacity: 1,
-      strokeColor: sel ? "#fff" : g ? BLUE_D : GREEN_D,
+      strokeColor: sel ? "#fff" : pd,
       strokeWeight: sel ? 2 : 1.2,
       labelOrigin: new google.maps.Point(0, -24),
     };
@@ -3820,19 +3833,19 @@ async function fixPage(f, u, i) {
     return 2 * 6371000 * Math.asin(Math.sqrt(s));
   };
 
-  /* ---------- numbering: time order over the whole day, or among GNSS fixes only ---------- */
+  /* ---------- numbering: time order over the whole day, or within one source when a source filter is chosen ---------- */
   const deviceName0 = f.device_id || "this device";
-  const gnssDay = dayFixes.filter((x) => isG(x.source));
   const allNo = new Map(dayFixes.map((x, i) => [x.id, i + 1]));
-  const gnssNo = new Map(gnssDay.map((x, i) => [x.id, i + 1]));
-  let gOnly = false; // "GNSS only" mode
-  const noOf = (x) => (gOnly && gnssNo.has(x.id) ? gnssNo.get(x.id) : allNo.get(x.id));
+  const srcNo = new Map();
+  srcList.forEach((sc) => dayFixes.filter((x) => x.source === sc).forEach((x, i) => srcNo.set(x.id, i + 1)));
+  let only = ""; // "" = all sources, otherwise "GNSS" / "SCELL" / "MCELL" ...
+  const noOf = (x) => (only && srcNo.has(x.id) ? srcNo.get(x.id) : allNo.get(x.id));
   // fixes at the same spot (same position to ~1 m) share ONE pin, labelled with all their numbers (e.g. "2,3")
   const gkey = (x) => x.latitude.toFixed(5) + "," + x.longitude.toFixed(5);
   const groups = new Map();
   dayFixes.forEach((x) => groups.set(gkey(x), [...(groups.get(gkey(x)) || []), x]));
   const members = (x) => groups.get(gkey(x));
-  const shown = (x) => !gOnly || isG(x.source);
+  const shown = (x) => !only || x.source === only;
   const lab = (x, size, always) => {
     if (!always && dayFixes.length > 40) return null;
     const nums = members(x).filter(shown).map(noOf);
@@ -3841,40 +3854,35 @@ async function fixPage(f, u, i) {
     return { text, color: "#fff", fontSize: "10px", fontWeight: "700" };
   };
 
-  /* ---------- all GNSS fixes of the day, joined by one blue line with direction arrows ---------- */
-  const devs = [...new Set(gnssDay.map((x) => x.device_id))];
-  // Google-navigation look: white-edged blue line with navigation chevrons (the arrow Google Maps uses for "head this way")
-  const NAV = { path: "M 0,-1.2 L 0.95,0.9 L 0,0.35 L -0.95,0.9 Z", scale: 7, fillColor: "#fff", fillOpacity: 1, strokeColor: BLUE_D, strokeWeight: 1.2 };
-  const casings = devs.map(
-    (d) =>
-      new google.maps.Polyline({ map, path: gnssDay.filter((x) => x.device_id === d).map(ll), strokeColor: "#fff", strokeOpacity: 1, strokeWeight: 8, zIndex: 1, clickable: false }),
-  );
-  const routes = devs.map(
-    (d) =>
-      new google.maps.Polyline({
-        map,
-        path: gnssDay.filter((x) => x.device_id === d).map(ll),
-        strokeColor: BLUE,
-        strokeOpacity: 1,
-        strokeWeight: 5,
-        zIndex: 2,
-        icons: [{ icon: NAV, offset: "50%", repeat: "90px" }],
-      }),
-  );
-  const routeM = devs.reduce((t, d) => {
-    const l = gnssDay.filter((x) => x.device_id === d);
-    return t + l.reduce((s, x, i) => (i ? s + hav(l[i - 1], x) : s), 0);
-  }, 0);
-  q("#gi").textContent =
-    (gnssDay.length
-      ? `GNSS today: ${gnssDay.length} fix${gnssDay.length === 1 ? "" : "es"} · ${routeM >= 1000 ? (routeM / 1000).toFixed(2) + " km" : Math.round(routeM) + " m"} along the route`
-      : "No GNSS fixes on this day") +
+  /* ---------- every source gets the same treatment: its fixes of the day joined by one white-edged line
+     in the source colour, with Google-navigation chevrons showing the direction of travel ---------- */
+  const navIcon = (src) => ({ path: "M 0,-1.2 L 0.95,0.9 L 0,0.35 L -0.95,0.9 Z", scale: 7, fillColor: "#fff", fillOpacity: 1, strokeColor: pal(src)[1], strokeWeight: 1.2 });
+  const routes = []; // { s: source, line, casing }
+  const stat = {}; // per source: fix count + route length in metres
+  srcList.forEach((sc) => {
+    const fx = dayFixes.filter((x) => x.source === sc);
+    stat[sc] = { n: fx.length, m: 0 };
+    [...new Set(fx.map((x) => x.device_id))].forEach((d) => {
+      const l = fx.filter((x) => x.device_id === d);
+      stat[sc].m += l.reduce((t, x, k) => (k ? t + hav(l[k - 1], x) : t), 0);
+      if (l.length < 2) return; // one fix has nothing to connect
+      const path = l.map(ll);
+      const casing = new google.maps.Polyline({ map, path, strokeColor: "#fff", strokeOpacity: 1, strokeWeight: 8, zIndex: 1, clickable: false });
+      const line = new google.maps.Polyline({ map, path, strokeColor: pal(sc)[0], strokeOpacity: 1, strokeWeight: 5, zIndex: 2, icons: [{ icon: navIcon(sc), offset: "50%", repeat: "90px" }] });
+      routes.push({ s: sc, line, casing });
+    });
+  });
+  const fmtM = (m) => (m >= 1000 ? (m / 1000).toFixed(2) + " km" : Math.round(m) + " m");
+  q("#gi").innerHTML =
+    (srcList
+      .map((sc) => `<b style="color:${srcCol(sc)}">${esc(sc)}</b> ${stat[sc].n} fix${stat[sc].n === 1 ? "" : "es"}${stat[sc].n > 1 ? " · " + fmtM(stat[sc].m) + " route" : ""}`)
+      .join(" &nbsp;|&nbsp; ") || "No fixes on this day") +
     (dayFixes.length < 2
-      ? `. Only ${dayFixes.length} fix is stored for ${deviceName0} on this day, so there is nothing to connect. Pick another day above${moreToday ? " or tick All devices" : ""}.`
+      ? `. Only ${dayFixes.length} fix is stored for ${esc(deviceName0)} on this day, so there is nothing to connect. Pick another day above${moreToday ? " or tick All devices" : ""}.`
       : "");
 
-  /* ---------- accuracy ring of the selected fix: blue for GNSS, green otherwise ---------- */
-  const ring = isG(f.source) ? BLUE : GREEN;
+  /* ---------- accuracy ring of the selected fix, in its source colour ---------- */
+  const ring = pal(f.source)[0];
   new google.maps.Circle({
     map,
     center: here,
@@ -3931,7 +3939,7 @@ async function fixPage(f, u, i) {
   const deviceName = f.device_id || "Unknown Device";
   const last = dayFixes[dayFixes.length - 1]; // latest fix of the day = current location
   const fixHtml = (x) =>
-    `<div style="font-weight:700;color:${isG(x.source) ? BLUE : GREEN}">● ${x.id === last.id ? "Current location" : "Fix #" + noOf(x)}</div>` +
+    `<div style="font-weight:700;color:${pal(x.source)[0]}">● ${x.id === last.id ? "Current location" : "Fix #" + noOf(x)}</div>` +
     `<div style="font-weight:700">${esc(x.device_id || deviceName)} · ${dt(x.fix_timestamp)}</div>` +
     `<div style="color:#333">± ${x.accuracy_m} m · ${esc(x.source || "Unknown")}</div>`;
 
@@ -3944,7 +3952,7 @@ async function fixPage(f, u, i) {
       m
         .map(
           (y) =>
-            `<div style="margin-top:3px"><b style="color:${isG(y.source) ? BLUE : GREEN}">● #${noOf(y)}${y.id === last.id ? " · Current location" : ""}</b> · ${esc(y.device_id || deviceName)} · ${dt(y.fix_timestamp)} · ± ${y.accuracy_m} m · ${esc(y.source || "Unknown")}</div>`,
+            `<div style="margin-top:3px"><b style="color:${pal(y.source)[0]}">● #${noOf(y)}${y.id === last.id ? " · Current location" : ""}</b> · ${esc(y.device_id || deviceName)} · ${dt(y.fix_timestamp)} · ± ${y.accuracy_m} m · ${esc(y.source || "Unknown")}</div>`,
         )
         .join("")
     );
@@ -3967,7 +3975,7 @@ async function fixPage(f, u, i) {
     const mem = members(x);
     if (mem.some((y) => y.id === f.id) || mem[0].id !== x.id) return; // already drawn by the selected pin, or by the first fix on this spot
     const scale = dayFixes.length <= 40 ? 0.9 : 0.6;
-    const src = mem.some((y) => isG(y.source)) ? "GNSS" : x.source;
+    const src = SRC_ORDER.find((sc) => mem.some((y) => y.source === sc)) || x.source;
     const m = new google.maps.Marker({ map, position: ll(x), icon: pin(false, scale, src), label: lab(x, "10px") });
     hover(m, 24 * scale + 6, () => groupHtml(x));
     m.addListener("click", () => go("fix-" + mem[mem.length - 1].id)); // opens the newest fix on this spot
@@ -3977,13 +3985,13 @@ async function fixPage(f, u, i) {
 
   /* ---------- safe zones: circles and rectangles (green = active, grey = inactive) ---------- */
   const zones = zn.map((z) => {
-      const act = z.is_active === true || z.is_active === 1 || ["true", "t", "1", "yes"].includes(String(z.is_active).toLowerCase()),
+    const act = z.is_active,
       style = {
         map,
-        strokeColor: act ? "#16a34a" : "#dc2626",
-        strokeWeight: 2,
-        fillColor: act ? "#16a34a" : "#dc2626",
-        fillOpacity: act ? 0.22 : 0.2,
+        strokeColor: act ? "#16a34a" : "#64748b",
+        strokeWeight: 1.5,
+        fillColor: act ? "#16a34a" : "#64748b",
+        fillOpacity: act ? 0.08 : 0.05,
         clickable: false,
       };
     if (z.shape === "rectangle") {
@@ -4009,7 +4017,7 @@ async function fixPage(f, u, i) {
     return m;
   });
 
-  /* ---------- what is visible: checkboxes + "GNSS only" mode ---------- */
+  /* ---------- what is visible: checkboxes + source filter ---------- */
   const on = { o: true, g: true };
   const applyVis = () => {
     others.forEach((m) => {
@@ -4018,7 +4026,11 @@ async function fixPage(f, u, i) {
       m.setLabel(lab(x, "10px"));
     });
     me.setLabel(lab(f, "12px", true));
-    routes.concat(casings).forEach((r) => r.setMap(on.g ? map : null));
+    routes.forEach((r) => {
+      const m = on.g && (!only || r.s === only) ? map : null;
+      r.line.setMap(m);
+      r.casing.setMap(m);
+    });
     hideTip();
   };
 
@@ -4059,24 +4071,19 @@ async function fixPage(f, u, i) {
   q("#mz").onchange = (e) => zones.forEach((m) => m.setMap(e.target.checked ? map : null));
   q("#ma").onchange = (e) => alerts.forEach((m) => m.setMap(e.target.checked ? map : null));
 
-  // "GNSS only": hide every non-GNSS fix, number the GNSS fixes 1..n, show the joined route and zoom to it
-  const zg = q("#zg");
-  if (!gnssDay.length) {
-    zg.disabled = true;
-    zg.title = "No GNSS fixes on this day";
-  }
-  zg.onclick = () => {
-    gOnly = !gOnly;
-    zg.classList.toggle("on", gOnly);
-    zg.textContent = gOnly ? "All sources" : "GNSS only";
-    routes.forEach((r) => r.setOptions({ strokeWeight: gOnly ? 6 : 5 }));
-    casings.forEach((r) => r.setOptions({ strokeWeight: gOnly ? 9 : 8 }));
-    if (gOnly) {
+  // source filter: hide the other sources, number this source's fixes 1..n, show its route and zoom to it
+  q("#zsrc").onchange = (e) => {
+    only = e.target.value;
+    routes.forEach((r) => {
+      r.line.setOptions({ strokeWeight: only ? 6 : 5 });
+      r.casing.setOptions({ strokeWeight: only ? 9 : 8 });
+    });
+    if (only) {
       on.g = true;
       q("#mg").checked = true;
     }
     applyVis();
-    gOnly ? fitList(gnssDay) : fitTrail();
+    only ? fitList(dayFixes.filter((x) => x.source === only)) : fitTrail();
   };
 
   // day picker + "All devices"
