@@ -8,7 +8,7 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
     />
-    <script async src="https://maps.googleapis.com/maps/api/js?key=GOOGLE_MAPS_API_KEY_PLACEHOLDER&v=weekly"></script>
+    <script async src="https://maps.googleapis.com/maps/api/js?key=GOOGLE_MAPS_API_KEY_PLACEHOLDER&loading=async&v=weekly"></script>
     <style>
 /* ===== TOKENS & BASE  ·  blue theme (deep indigo by default, light sky variant), reset, typography ===== */
 
@@ -3827,26 +3827,38 @@ async function fixPage(f, u, i) {
   const gnssNo = new Map(gnssDay.map((x, i) => [x.id, i + 1]));
   let gOnly = false; // "GNSS only" mode
   const noOf = (x) => (gOnly && gnssNo.has(x.id) ? gnssNo.get(x.id) : allNo.get(x.id));
-  const lab = (x, size, always) =>
-    always || dayFixes.length <= 40 ? { text: String(noOf(x)), color: "#fff", fontSize: size, fontWeight: "700" } : null;
+  // fixes at the same spot (same position to ~1 m) share ONE pin, labelled with all their numbers (e.g. "2,3")
+  const gkey = (x) => x.latitude.toFixed(5) + "," + x.longitude.toFixed(5);
+  const groups = new Map();
+  dayFixes.forEach((x) => groups.set(gkey(x), [...(groups.get(gkey(x)) || []), x]));
+  const members = (x) => groups.get(gkey(x));
+  const shown = (x) => !gOnly || isG(x.source);
+  const lab = (x, size, always) => {
+    if (!always && dayFixes.length > 40) return null;
+    const nums = members(x).filter(shown).map(noOf);
+    if (nums.length < 2) return { text: String(noOf(x)), color: "#fff", fontSize: size, fontWeight: "700" };
+    const text = nums.length === 2 ? nums.join(",") : nums[0] + "–" + nums[nums.length - 1];
+    return { text, color: "#fff", fontSize: "10px", fontWeight: "700" };
+  };
 
   /* ---------- all GNSS fixes of the day, joined by one blue line with direction arrows ---------- */
   const devs = [...new Set(gnssDay.map((x) => x.device_id))];
+  // Google-navigation look: white-edged blue line with navigation chevrons (the arrow Google Maps uses for "head this way")
+  const NAV = { path: "M 0,-1.2 L 0.95,0.9 L 0,0.35 L -0.95,0.9 Z", scale: 7, fillColor: "#fff", fillOpacity: 1, strokeColor: BLUE_D, strokeWeight: 1.2 };
+  const casings = devs.map(
+    (d) =>
+      new google.maps.Polyline({ map, path: gnssDay.filter((x) => x.device_id === d).map(ll), strokeColor: "#fff", strokeOpacity: 1, strokeWeight: 8, zIndex: 1, clickable: false }),
+  );
   const routes = devs.map(
     (d) =>
       new google.maps.Polyline({
         map,
         path: gnssDay.filter((x) => x.device_id === d).map(ll),
         strokeColor: BLUE,
-        strokeOpacity: 0.9,
-        strokeWeight: 4,
-        icons: [
-          {
-            icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 3, fillColor: BLUE, fillOpacity: 1, strokeColor: "#fff", strokeWeight: 1 },
-            offset: "50%",
-            repeat: "120px",
-          },
-        ],
+        strokeOpacity: 1,
+        strokeWeight: 5,
+        zIndex: 2,
+        icons: [{ icon: NAV, offset: "50%", repeat: "90px" }],
       }),
   );
   const routeM = devs.reduce((t, d) => {
@@ -3881,7 +3893,7 @@ async function fixPage(f, u, i) {
   mpEl.style.position = "relative";
   const tip = document.createElement("div");
   tip.style.cssText =
-    "position:absolute;display:none;z-index:5;pointer-events:none;width:max-content;max-width:280px;box-sizing:border-box;" +
+    "position:absolute;display:none;z-index:5;pointer-events:none;width:max-content;box-sizing:border-box;" +
     "background:#fff;color:#000;font:13px/1.5 Arial,sans-serif;padding:6px 10px;border-radius:8px;white-space:nowrap;" +
     "box-shadow:0 2px 10px rgba(0,0,0,.3)";
   mpEl.appendChild(tip);
@@ -3923,6 +3935,21 @@ async function fixPage(f, u, i) {
     `<div style="font-weight:700">${esc(x.device_id || deviceName)} · ${dt(x.fix_timestamp)}</div>` +
     `<div style="color:#333">± ${x.accuracy_m} m · ${esc(x.source || "Unknown")}</div>`;
 
+  // card for a pin: one fix, or every fix that sits on the same spot
+  const groupHtml = (x) => {
+    const m = members(x).filter(shown);
+    if (m.length < 2) return fixHtml(x);
+    return (
+      `<div style="font-weight:700">${m.length} fixes at this spot</div>` +
+      m
+        .map(
+          (y) =>
+            `<div style="margin-top:3px"><b style="color:${isG(y.source) ? BLUE : GREEN}">● #${noOf(y)}${y.id === last.id ? " · Current location" : ""}</b> · ${esc(y.device_id || deviceName)} · ${dt(y.fix_timestamp)} · ± ${y.accuracy_m} m · ${esc(y.source || "Unknown")}</div>`,
+        )
+        .join("")
+    );
+  };
+
   /* ---------- the selected fix ---------- */
   const me = new google.maps.Marker({
     map,
@@ -3931,17 +3958,19 @@ async function fixPage(f, u, i) {
     label: lab(f, "12px", true),
     zIndex: 1000,
   });
-  hover(me, 24 * 1.4 + 6, () => fixHtml(f));
+  hover(me, 24 * 1.4 + 6, () => groupHtml(f));
 
   /* ---------- every other fix of the same day: hover = card, click = open that fix ---------- */
   const others = [],
     otherFix = new Map();
   dayFixes.forEach((x) => {
-    if (x.id === f.id) return;
+    const mem = members(x);
+    if (mem.some((y) => y.id === f.id) || mem[0].id !== x.id) return; // already drawn by the selected pin, or by the first fix on this spot
     const scale = dayFixes.length <= 40 ? 0.9 : 0.6;
-    const m = new google.maps.Marker({ map, position: ll(x), icon: pin(false, scale, x.source), label: lab(x, "10px") });
-    hover(m, 24 * scale + 6, () => fixHtml(x));
-    m.addListener("click", () => go("fix-" + x.id));
+    const src = mem.some((y) => isG(y.source)) ? "GNSS" : x.source;
+    const m = new google.maps.Marker({ map, position: ll(x), icon: pin(false, scale, src), label: lab(x, "10px") });
+    hover(m, 24 * scale + 6, () => groupHtml(x));
+    m.addListener("click", () => go("fix-" + mem[mem.length - 1].id)); // opens the newest fix on this spot
     others.push(m);
     otherFix.set(m, x);
   });
@@ -3985,11 +4014,11 @@ async function fixPage(f, u, i) {
   const applyVis = () => {
     others.forEach((m) => {
       const x = otherFix.get(m);
-      m.setMap(on.o && (!gOnly || isG(x.source)) ? map : null);
+      m.setMap(on.o && members(x).some(shown) ? map : null);
       m.setLabel(lab(x, "10px"));
     });
     me.setLabel(lab(f, "12px", true));
-    routes.forEach((r) => r.setMap(on.g ? map : null));
+    routes.concat(casings).forEach((r) => r.setMap(on.g ? map : null));
     hideTip();
   };
 
@@ -4040,7 +4069,8 @@ async function fixPage(f, u, i) {
     gOnly = !gOnly;
     zg.classList.toggle("on", gOnly);
     zg.textContent = gOnly ? "All sources" : "GNSS only";
-    routes.forEach((r) => r.setOptions({ strokeWeight: gOnly ? 5 : 4 }));
+    routes.forEach((r) => r.setOptions({ strokeWeight: gOnly ? 6 : 5 }));
+    casings.forEach((r) => r.setOptions({ strokeWeight: gOnly ? 9 : 8 }));
     if (gOnly) {
       on.g = true;
       q("#mg").checked = true;
