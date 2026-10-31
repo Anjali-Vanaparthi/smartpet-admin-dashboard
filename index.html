@@ -3977,13 +3977,13 @@ async function fixPage(f, u, i) {
 
   /* ---------- safe zones: circles and rectangles (green = active, grey = inactive) ---------- */
   const zones = zn.map((z) => {
-    const act = z.is_active,
+      const act = z.is_active === true || z.is_active === 1 || ["true", "t", "1", "yes"].includes(String(z.is_active).toLowerCase()),
       style = {
         map,
-        strokeColor: act ? "#16a34a" : "#64748b",
-        strokeWeight: 1.5,
-        fillColor: act ? "#16a34a" : "#64748b",
-        fillOpacity: act ? 0.08 : 0.05,
+        strokeColor: act ? "#16a34a" : "#dc2626",
+        strokeWeight: 2,
+        fillColor: act ? "#16a34a" : "#dc2626",
+        fillOpacity: act ? 0.22 : 0.2,
         clickable: false,
       };
     if (z.shape === "rectangle") {
