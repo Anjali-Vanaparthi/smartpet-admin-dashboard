@@ -3559,8 +3559,8 @@ const zstat = (f, zs) => {
   return ins.length ? [...new Set(ins.map((z) => z.name))].join(", ") : null;
 };
 /* one colour per location source, used by pins, routes, the status line and the legend */
-const SRCCOL = { GNSS: "#1a73e8", SCELL: "#0f9d74", MCELL: "#7c3aed", WIFI: "#d97706" },
-  srcCol = (s) => SRCCOL[s] || "#64748b",
+const srcCol = () => "#1a73e8", // every source (GNSS, SCELL, MCELL, Wi-Fi) uses the same blue; the source is named in the cards
+ 
   SRC_ORDER = ["GNSS", "SCELL", "MCELL", "WIFI"];
 const spill = (x) =>
   `<span class="pill" style="background:${SC[x]}22;color:${SC[x]}">${x}</span>`;
@@ -3740,7 +3740,7 @@ async function fixPage(f, u, i) {
  <div id="cs" style="width:fit-content;max-width:100%;margin:0 0 6px;font-size:13px;line-height:1.5;color:var(--tx)"><b style="color:${lastCol}">● Current location</b> · ${esc(lastFx.device_id || "Unknown Device")} · ${dt(lastFx.fix_timestamp)} · ± ${lastFx.accuracy_m} m · ${esc(lastFx.source || "Unknown")}</div>
  <div id="gi" class="mu" style="width:fit-content;max-width:100%;margin:0 0 8px"></div>
  <div id="mp" style="height:496px;border-radius:12px;overflow:hidden;background:var(--panel);border:1px solid var(--line)"></div>
- <div class="leg" style="margin-top:8px">${srcList.map((s) => `<span><i style="background:${srcCol(s)};border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></i>${esc(s)} fix</span><span><i style="background:${srcCol(s)};height:3px;border-radius:2px;width:16px"></i>${esc(s)} route</span>`).join("")}<span><i style="background:#dc2626;border-radius:2px;transform:rotate(45deg)"></i>Alert</span><span><i style="background:#16a34a;border-radius:2px"></i>Safe zone</span><span id="rd" style="margin-left:auto;font-variant-numeric:tabular-nums"></span></div>
+ <div class="leg" style="margin-top:8px"><span><i style="background:#1a73e8;border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></i>Fix (GNSS, SCELL, MCELL)</span><span><i style="background:#1a73e8;height:3px;border-radius:2px;width:16px"></i>Route in time order</span><span><i style="background:#dc2626;border-radius:2px;transform:rotate(45deg)"></i>Alert</span><span><i style="background:#16a34a;border-radius:2px"></i>Safe zone</span><span id="rd" style="margin-left:auto;font-variant-numeric:tabular-nums"></span></div>
  <div class="pager" style="margin-top:6px">Hover a pin for details, click it to open that fix. Drag to pan, scroll to zoom.</div></div>
  <div><div class="card"><h3>Fix details</h3>${row("Fix ID", f.id) + row("Pet", esc(who)) + row("User", esc(u.name)) + row("Device", f.device_id) + row("Time", dt(f.fix_timestamp)) + row("Latitude, longitude", f.latitude + ", " + f.longitude) + row("Accuracy", "± " + f.accuracy_m + " m") + row("Source", spill(f.source)) + row("Safe-zone status", zin ? `<span class="pill ok">Inside ${esc(zin)}</span>` : '<span class="pill wa">Outside safe zones</span>')}</div>
  <div class="card" style="margin-top:14px"><h3>Movement · fix ${k + 1} of ${seq.length}</h3>${mv(prev, "From previous fix") + mv(next, "To next fix")}</div>
@@ -3796,14 +3796,8 @@ async function fixPage(f, u, i) {
     gestureHandling: "greedy", // wheel zooms, drag pans, no ctrl-key needed
   });
 
-  /* ---------- colours: one per source (GNSS blue, SCELL green, MCELL purple, Wi-Fi amber) ---------- */
-  const PAL = {
-    GNSS: ["#1a73e8", "#0b4fb3", "#5b9cf5"],
-    SCELL: ["#0f9d74", "#0a6e52", "#34d3a0"],
-    MCELL: ["#7c3aed", "#5b21b6", "#a78bfa"],
-    WIFI: ["#d97706", "#92400e", "#fbbf24"],
-  };
-  const pal = (s) => PAL[s] || ["#64748b", "#334155", "#94a3b8"]; // [main, dark, light]
+  /* ---------- colours: one blue for every source ---------- */
+  const pal = () => ["#1a73e8", "#0b4fb3", "#5b9cf5"]; // [main, dark, light] - the same for every source
   const pin = (sel, scale, src) => {
     const [pc, pd, pl] = pal(src);
     return {
@@ -3856,24 +3850,27 @@ async function fixPage(f, u, i) {
 
   /* ---------- every source gets the same treatment: its fixes of the day joined by one white-edged line
      in the source colour, with Google-navigation chevrons showing the direction of travel ---------- */
-  const navIcon = (src) => ({ path: "M 0,-1.2 L 0.95,0.9 L 0,0.35 L -0.95,0.9 Z", scale: 7, fillColor: "#fff", fillOpacity: 1, strokeColor: pal(src)[1], strokeWeight: 1.2 });
-  const routes = []; // { s: source, line, casing }
-  const stat = {}; // per source: fix count + route length in metres
-  srcList.forEach((sc) => {
-    const fx = dayFixes.filter((x) => x.source === sc);
+  const navIcon = () => ({ path: "M 0,-1.2 L 0.95,0.9 L 0,0.35 L -0.95,0.9 Z", scale: 7, fillColor: "#fff", fillOpacity: 1, strokeColor: "#0b4fb3", strokeWeight: 1.2 });
+  const routes = []; // { s: "" for the whole-day route through every fix, or a source name, line, casing }
+  const stat = {}; // fix count + route length in metres, for "" (whole day) and each source
+  ["", ...srcList].forEach((sc) => {
+    const fx = sc ? dayFixes.filter((x) => x.source === sc) : dayFixes;
     stat[sc] = { n: fx.length, m: 0 };
     [...new Set(fx.map((x) => x.device_id))].forEach((d) => {
-      const l = fx.filter((x) => x.device_id === d);
+      const l = fx.filter((x) => x.device_id === d); // already in time order
       stat[sc].m += l.reduce((t, x, k) => (k ? t + hav(l[k - 1], x) : t), 0);
       if (l.length < 2) return; // one fix has nothing to connect
       const path = l.map(ll);
       const casing = new google.maps.Polyline({ map, path, strokeColor: "#fff", strokeOpacity: 1, strokeWeight: 8, zIndex: 1, clickable: false });
-      const line = new google.maps.Polyline({ map, path, strokeColor: pal(sc)[0], strokeOpacity: 1, strokeWeight: 5, zIndex: 2, icons: [{ icon: navIcon(sc), offset: "50%", repeat: "90px" }] });
+      const line = new google.maps.Polyline({ map, path, strokeColor: "#1a73e8", strokeOpacity: 1, strokeWeight: 5, zIndex: 2, icons: [{ icon: navIcon(), offset: "50%", repeat: "90px" }] });
       routes.push({ s: sc, line, casing });
     });
   });
+  // with "All sources" the one route through every fix (1 -> 2 -> 3 ... whatever the source) is shown; a source filter shows that source's own route
+  const routeShown = (r) => (only ? r.s === only : r.s === "");
   const fmtM = (m) => (m >= 1000 ? (m / 1000).toFixed(2) + " km" : Math.round(m) + " m");
   q("#gi").innerHTML =
+    (srcList.length > 1 ? `<b>Whole day</b> ${stat[""].n} fixes · ${fmtM(stat[""].m)} route &nbsp;&nbsp;` : "") +
     (srcList
       .map((sc) => `<b style="color:${srcCol(sc)}">${esc(sc)}</b> ${stat[sc].n} fix${stat[sc].n === 1 ? "" : "es"}${stat[sc].n > 1 ? " · " + fmtM(stat[sc].m) + " route" : ""}`)
       .join(" &nbsp;|&nbsp; ") || "No fixes on this day") +
@@ -4027,7 +4024,7 @@ async function fixPage(f, u, i) {
     });
     me.setLabel(lab(f, "12px", true));
     routes.forEach((r) => {
-      const m = on.g && (!only || r.s === only) ? map : null;
+      const m = on.g && routeShown(r) ? map : null;
       r.line.setMap(m);
       r.casing.setMap(m);
     });
