@@ -223,16 +223,16 @@ async function fixPage(f, u, i) {
     zoomControl: false, // we have our own + / - buttons in the toolbar
     gestureHandling: "greedy", // wheel zooms, drag pans, no ctrl-key needed
   });
-    const GREEN = "#0f9d74", GREEN_D = "#0a6e52", GREEN_L = "#34d3a0";
-  const pin = (sel, scale) => ({
-    path: "M0,0 C-4,-10 -12,-14 -12,-24 A12,12 0 1,1 12,-24 C12,-14 4,-10 0,0 Z",
-    scale,
-    fillColor: sel ? GREEN : GREEN_L,
-    fillOpacity: 1,
-    strokeColor: sel ? "#fff" : GREEN_D,
-    strokeWeight: sel ? 2 : 1.2,
-    labelOrigin: new google.maps.Point(0, -24),
-  });
+  //   const GREEN = "#0f9d74", GREEN_D = "#0a6e52", GREEN_L = "#34d3a0";
+  // const pin = (sel, scale) => ({
+  //   path: "M0,0 C-4,-10 -12,-14 -12,-24 A12,12 0 1,1 12,-24 C12,-14 4,-10 0,0 Z",
+  //   scale,
+  //   fillColor: sel ? GREEN : GREEN_L,
+  //   fillOpacity: 1,
+  //   strokeColor: sel ? "#fff" : GREEN_D,
+  //   strokeWeight: sel ? 2 : 1.2,
+  //   labelOrigin: new google.maps.Point(0, -24),
+  // });
   const numLabel = (n) =>
     dayFixes.length <= 40 ? { text: String(n), color: "#fff", fontSize: "10px", fontWeight: "700" } : undefined;
 
@@ -269,36 +269,39 @@ async function fixPage(f, u, i) {
   //   strokeWeight: 4,
   // });
     // the whole day as one path, with direction arrows
+  // all GNSS fixes of the day joined by one blue line, with direction arrows
+  const gnssDay = dayFixes.filter((x) => isG(x.source));
   new google.maps.Polyline({
     map,
-    path: dayFixes.map(ll),
-    strokeColor: GREEN,
-    strokeOpacity: 0.85,
-    strokeWeight: 3,
-    icons: [{
-      icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 3, fillColor: GREEN, fillOpacity: 1, strokeColor: "#fff", strokeWeight: 1 },
-      offset: "50%",
-      repeat: "120px",
-    }],
+    path: gnssDay.map(ll),
+    strokeColor: BLUE,
+    strokeOpacity: 0.9,
+    strokeWeight: 4,
+    icons: [
+      {
+        icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 3, fillColor: BLUE, fillOpacity: 1, strokeColor: "#fff", strokeWeight: 1 },
+        offset: "50%",
+        repeat: "120px",
+      },
+    ],
   });
-
   // accuracy circle + the selected fix
   new google.maps.Circle({
     map,
     center: here,
     radius: f.accuracy_m,
-    strokeColor: GREEN,
+    strokeColor: isG(f.source) ? BLUE : GREEN,
     strokeOpacity: 0.8,
     strokeWeight: 1,
-    fillColor: GREEN,
+    fillColor: isG(f.source) ? BLUE : GREEN,
     fillOpacity: 0.13,
     clickable: false,
   });
   const me = new google.maps.Marker({
     map,
     position: here,
-    title: `${who} · Fix #${f.id}`,
-    icon: pin(true, 1.4),
+    title: `${deviceName} · Fix #${f.id}`,
+    icon: pin(true, 1.4, f.source),
     label: { text: String(dayFixes.findIndex((x) => x.id === f.id) + 1), color: "#fff", fontSize: "12px", fontWeight: "700" },
     zIndex: 1000,
   });
