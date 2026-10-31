@@ -3660,7 +3660,7 @@ async function fixPage(f, u, i) {
     ].map(fetchTable),
   );
   const seq = lf
-      .filter((x) => x.pet_id === f.pet_id)
+      .filter((x) => x.user_id === f.user_id && x.device_id === f.device_id)
       .sort((a, b) => a.fix_timestamp - b.fix_timestamp),
     k = seq.findIndex((x) => x.id === f.id),
     prev = seq[k - 1],
@@ -3674,13 +3674,26 @@ async function fixPage(f, u, i) {
         ) % MC.length
       ],
     zn = zs.filter((z) => z.user_id === u.id),
-    pa = al.filter((a) => a.pet_id === f.pet_id && a.latitude != null),
+    pa = al.filter((a) => a.user_id === f.user_id && (!f.pet_id || a.pet_id === f.pet_id) && a.latitude != null),
     g = gn.find((x) => x.location_fix_id === f.id),
     c = sv.find((x) => x.location_fix_id === f.id),
     n = nb.find((x) => x.location_fix_id === f.id),
     zin = zstat(f, zs),
     kx = 111320 * Math.cos((f.latitude * Math.PI) / 180),
     ky = 110540;
+  const who = pName(f.pet_id) || f.device_id; // pet can be null, use the device name
+  const dkey = (t) => {
+      const d = new Date(t);
+      return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+    },
+    dk = dkey(f.fix_timestamp),
+    dayFixes = seq.filter((x) => dkey(x.fix_timestamp) === dk),
+    days = [...new Set(seq.map((x) => dkey(x.fix_timestamp)))],
+    di = days.indexOf(dk),
+    firstOf = (k) => seq.find((x) => dkey(x.fix_timestamp) === k),
+    prevDay = di > 0 ? firstOf(days[di - 1]) : null,
+    nextDay = di < days.length - 1 ? firstOf(days[di + 1]) : null,
+    dayLabel = new Date(f.fix_timestamp).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
   const row = (a, b) => `<div class="row"><span>${a}</span><span>${b ?? "—"}</span></div>`,
     hd = (t) => `<h3 style="margin:14px 0 2px">${t}</h3>`;
   const mv = (o, label) => {
@@ -3693,12 +3706,12 @@ async function fixPage(f, u, i) {
     );
   };
   $("#view").innerHTML =
-    `<div class="pgh"><div><h1 class="t">Fix #${f.id} · 🐾 ${esc(pName(f.pet_id))}</h1><div class="sub">${esc(u.name)} · ${dt(f.fix_timestamp)} · ${f.latitude}, ${f.longitude}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="ib" ${prev ? `data-fx="${prev.id}"` : "disabled"}>‹ Previous fix</button><button class="ib" ${next ? `data-fx="${next.id}"` : "disabled"}>Next fix ›</button></div></div>
- <div class="mg"><div><div class="tool"><label class="ck"><input type="checkbox" id="mo" checked> Other fixes</label><label class="ck"><input type="checkbox" id="mz" checked> Safe zones</label><label class="ck"><input type="checkbox" id="ma" checked> Alerts</label><span style="margin-left:auto;display:flex;gap:6px"><button class="ib" id="zi">＋</button><button class="ib" id="zo">－</button><button class="ib" id="zc">Centre on fix</button><button class="ib" id="zt">Full trail</button></span></div>
+    `<div class="pgh"><div><h1 class="t">Fix #${f.id} · 🐾 ${esc(who)}</h1><div class="sub">${esc(u.name)} · ${dt(f.fix_timestamp)} · ${f.latitude}, ${f.longitude}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="ib" ${prevDay ? `data-fx="${prevDay.id}"` : "disabled"}>‹ Previous day</button><span style="font-size:13px;color:var(--mu);text-align:center"><b style="color:var(--tx)">${dayLabel}</b><br>${dayFixes.length} fixes · day ${di + 1} of ${days.length}</span><button class="ib" ${nextDay ? `data-fx="${nextDay.id}"` : "disabled"}>Next day ›</button></div></div>
+ <div class="mg"><div><div class="tool"><label class="ck"><input type="checkbox" id="mo" checked> Other fixes</label><label class="ck"><input type="checkbox" id="mz" checked> Safe zones</label><label class="ck"><input type="checkbox" id="ma" checked> Alerts</label><span style="margin-left:auto;display:flex;gap:6px"><button class="ib" id="zi">＋</button><button class="ib" id="zo">－</button><button class="ib" id="zc">Centre on fix</button><button class="ib" id="zt">Fit whole day</button></span></div>
  <div id="mp" style="height:496px;border-radius:12px;overflow:hidden;background:var(--panel);border:1px solid var(--line)"></div>
- <div class="leg" style="margin-top:8px">${["GNSS", "SCELL", "MCELL", "WIFI"].map((x) => `<span><i style="background:${SC[x]}"></i>${x}</span>`).join("")}<span><i style="background:${col}"></i>${esc(pName(f.pet_id))} trail</span><span><i style="background:#dc2626;border-radius:2px;transform:rotate(45deg)"></i>Alert</span><span><i style="background:#16a34a;border-radius:2px"></i>Safe zone</span><span id="rd" style="margin-left:auto;font-variant-numeric:tabular-nums"></span></div>
+ <div class="leg" style="margin-top:8px"><span><i style="background:#0f9d74;border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></i>Selected fix</span><span><i style="background:#34d3a0;border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></i>Other fixes today (numbered by time)</span><span><i style="background:#dc2626;border-radius:2px;transform:rotate(45deg)"></i>Alert</span><span><i style="background:#16a34a;border-radius:2px"></i>Safe zone</span><span id="rd" style="margin-left:auto;font-variant-numeric:tabular-nums"></span></div>
  <div class="pager" style="margin-top:6px">Click any other point to jump to that fix. Drag to pan, scroll to zoom.</div></div>
- <div><div class="card"><h3>Fix details</h3>${row("Fix ID", f.id) + row("Pet", esc(pName(f.pet_id))) + row("User", esc(u.name)) + row("Device", f.device_id) + row("Time", dt(f.fix_timestamp)) + row("Latitude, longitude", f.latitude + ", " + f.longitude) + row("Accuracy", "± " + f.accuracy_m + " m") + row("Source", spill(f.source)) + row("Safe-zone status", zin ? `<span class="pill ok">Inside ${esc(zin)}</span>` : '<span class="pill wa">Outside safe zones</span>')}</div>
+ <div><div class="card"><h3>Fix details</h3>${row("Fix ID", f.id) + row("Pet", esc(who)) + row("User", esc(u.name)) + row("Device", f.device_id) + row("Time", dt(f.fix_timestamp)) + row("Latitude, longitude", f.latitude + ", " + f.longitude) + row("Accuracy", "± " + f.accuracy_m + " m") + row("Source", spill(f.source)) + row("Safe-zone status", zin ? `<span class="pill ok">Inside ${esc(zin)}</span>` : '<span class="pill wa">Outside safe zones</span>')}</div>
  <div class="card" style="margin-top:14px"><h3>Movement · fix ${k + 1} of ${seq.length}</h3>${mv(prev, "From previous fix") + mv(next, "To next fix")}</div>
  <div class="card" style="margin-top:14px"><h3>Signal &amp; cell data</h3>${f.source === "GNSS" && g ? row("Altitude", g.altitude_m + " m") + row("Speed", g.speed) + row("Heading", g.heading_deg + "°") + row("Satellites", g.satellites_used + " used / " + g.satellites_tracked + " tracked") : row("GNSS", "not used, fix came from " + f.source)}${c ? hd("Serving cell") + row("MCC / MNC", c.mcc + " / " + c.mnc) + row("TAC / ECI", c.tac + " / " + c.eci) + row("PCI / EARFCN", c.pci + " / " + c.earfcn) + row("RSRP / RSRQ", c.rsrp + " dBm / " + c.rsrq + " dB") : ""}${n ? hd("Neighbour cell") + row("PCI / EARFCN", n.pci + " / " + n.earfcn) + row("RSRP / RSRQ", n.rsrp + " dBm / " + n.rsrq + " dB") : ""}</div></div></div>`;
   const q = (x) => document.querySelector("#view " + x);
@@ -3752,6 +3765,18 @@ async function fixPage(f, u, i) {
     gestureHandling: "greedy", // wheel zooms, drag pans, no ctrl-key needed
   });
 
+  const GREEN = "#0f9d74", GREEN_D = "#0a6e52", GREEN_L = "#34d3a0";
+  const pin = (sel, scale) => ({
+    path: "M0,0 C-4,-10 -12,-14 -12,-24 A12,12 0 1,1 12,-24 C12,-14 4,-10 0,0 Z",
+    scale,
+    fillColor: sel ? GREEN : GREEN_L,
+    fillOpacity: 1,
+    strokeColor: sel ? "#fff" : GREEN_D,
+    strokeWeight: sel ? 2 : 1.2,
+    labelOrigin: new google.maps.Point(0, -24),
+  });
+  const numLabel = (n) =>
+    dayFixes.length <= 40 ? { text: String(n), color: "#fff", fontSize: "10px", fontWeight: "700" } : undefined;
   const dot = (fill, scale) => ({
     path: google.maps.SymbolPath.CIRCLE,
     scale,
@@ -3769,20 +3794,20 @@ async function fixPage(f, u, i) {
     strokeWeight: 1.5,
   });
 
-  // trail: faint full path + highlighted previous -> this -> next
+  // the whole day as one path, with direction arrows
   new google.maps.Polyline({
     map,
-    path: seq.map(ll),
-    strokeColor: col,
-    strokeOpacity: 0.3,
-    strokeWeight: 2,
-  });
-  new google.maps.Polyline({
-    map,
-    path: [prev, f, next].filter(Boolean).map(ll),
-    strokeColor: col,
-    strokeOpacity: 0.9,
-    strokeWeight: 4,
+    path: dayFixes.map(ll),
+    strokeColor: GREEN,
+    strokeOpacity: 0.85,
+    strokeWeight: 3,
+    icons: [
+      {
+        icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 3, fillColor: GREEN, fillOpacity: 1, strokeColor: "#fff", strokeWeight: 1 },
+        offset: "50%",
+        repeat: "120px",
+      },
+    ],
   });
 
   // accuracy circle + the selected fix
@@ -3790,22 +3815,22 @@ async function fixPage(f, u, i) {
     map,
     center: here,
     radius: f.accuracy_m,
-    strokeColor: "#4f7cff",
+    strokeColor: GREEN,
     strokeOpacity: 0.8,
     strokeWeight: 1,
-    fillColor: "#4f7cff",
+    fillColor: GREEN,
     fillOpacity: 0.13,
     clickable: false,
   });
   // const me = new google.maps.Marker({
   //   map,
   //   position: here,
-  //   title: `${pName(f.pet_id)} · Fix #${f.id}`,
+  //   title: `${who} · Fix #${f.id}`,
   //   icon: { ...dot(SC[f.source], 10), strokeColor: "#fff", strokeWeight: 3 },
   //   zIndex: 1000,
   // });
   // const info = new google.maps.InfoWindow({
-  //   content: `<b>${esc(pName(f.pet_id))}</b> · ${dt(f.fix_timestamp).slice(-5)}<br>± ${f.accuracy_m} m · ${f.source}`,
+  //   content: `<b>${esc(who)}</b> · ${dt(f.fix_timestamp).slice(-5)}<br>± ${f.accuracy_m} m · ${f.source}`,
   // });
 
   
@@ -3815,7 +3840,8 @@ const me = new google.maps.Marker({
   map,
   position: here,
   title: `${deviceName} · Fix #${f.id}`,
-  icon: { ...dot(SC[f.source], 10), strokeColor: "#fff", strokeWeight: 3 },
+  icon: pin(true, 1.4),
+  label: { text: String(dayFixes.findIndex((x) => x.id === f.id) + 1), color: "#fff", fontSize: "12px", fontWeight: "700" },
   zIndex: 1000,
 });
 
@@ -3842,20 +3868,21 @@ const info = new google.maps.InfoWindow({
   info.open({ map, anchor: me });
   me.addListener("click", () => info.open({ map, anchor: me }));
 
-  // other fixes of this pet (click to jump to that fix)
-  const others = seq
-    .filter((x) => x.id !== f.id)
-    .map((x) => {
-      const pn = x === prev || x === next,
-        m = new google.maps.Marker({
-          map,
-          position: ll(x),
-          icon: dot(SC[x.source], pn ? 7 : 5),
-          title: `${pn ? (x === prev ? "Previous · " : "Next · ") : ""}Fix #${x.id} · ${x.source} · ± ${x.accuracy_m} m · ${dt(x.fix_timestamp)}`,
-        });
+  // every other fix of the same day (click one to open that fix)
+  const others = dayFixes
+    .map((x, i) => {
+      if (x.id === f.id) return null;
+      const m = new google.maps.Marker({
+        map,
+        position: ll(x),
+        icon: pin(false, dayFixes.length <= 40 ? 0.9 : 0.6),
+        label: numLabel(i + 1),
+        title: `#${i + 1} · Fix #${x.id} · ${x.source} · ± ${x.accuracy_m} m · ${dt(x.fix_timestamp)}`,
+      });
       m.addListener("click", () => go("fix-" + x.id));
       return m;
-    });
+    })
+    .filter(Boolean);
 
   // safe zones: circles and rectangles (green = active, grey = inactive)
   const zones = zn.map((z) => {
@@ -3863,9 +3890,9 @@ const info = new google.maps.InfoWindow({
       style = {
         map,
         strokeColor: act ? "#16a34a" : "#64748b",
-        strokeWeight: 1.5,
+        strokeWeight: 2,
         fillColor: act ? "#16a34a" : "#64748b",
-        fillOpacity: act ? 0.08 : 0.05,
+        fillOpacity: act ? 0.2 : 0.08,
         clickable: false,
       };
     if (z.shape === "rectangle") {
@@ -3885,7 +3912,7 @@ const info = new google.maps.InfoWindow({
   });
 
   // alerts raised by this pet (red / amber / teal diamonds)
-  const alerts = pa.map((a) => {
+  const alerts = pa.filter((a) => dkey(a.triggered_at) === dk).map((a) => {
     const m = new google.maps.Marker({
       map,
       position: ll(a),
@@ -3905,8 +3932,13 @@ const info = new google.maps.InfoWindow({
     map.fitBounds(b, 40);
   };
   const fitTrail = () => {
+    if (dayFixes.length < 2) {
+      map.setCenter(here);
+      map.setZoom(17);
+      return;
+    }
     const b = new google.maps.LatLngBounds();
-    seq.forEach((x) => b.extend(ll(x)));
+    dayFixes.forEach((x) => b.extend(ll(x)));
     map.fitBounds(b, 40);
   };
 
@@ -3926,7 +3958,7 @@ const info = new google.maps.InfoWindow({
 
   $$("#view [data-t]").forEach((e) => (e.onclick = () => go(e.dataset.t)));
   $$("#view [data-fx]").forEach((e) => (e.onclick = () => go("fix-" + e.dataset.fx)));
-  fitFix();
+  fitTrail(); // open on the whole day
 }
 
 /* ===== BOOT ===== */
