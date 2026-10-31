@@ -172,6 +172,9 @@ async function fixPage(f, u, i) {
     moreToday = FIX_ALL_DEVICES
       ? 0
       : lf.filter((x) => x.user_id === f.user_id && x.device_id !== f.device_id && dkey(x.fix_timestamp) === dk).length;
+  // latest fix of the day = the "current location", shown as plain text above the map at all times
+  const lastFx = dayFixes[dayFixes.length - 1] || f,
+    lastCol = lastFx.source === "GNSS" ? "#1a73e8" : "#0f9d74";
   const row = (a, b) => `<div class="row"><span>${a}</span><span>${b ?? "—"}</span></div>`,
     hd = (t) => `<h3 style="margin:14px 0 2px">${t}</h3>`;
   const mv = (o, label) => {
@@ -186,7 +189,8 @@ async function fixPage(f, u, i) {
   $("#view").innerHTML =
     `<div class="pgh"><div><h1 class="t">Fix #${f.id} · 🐾 ${esc(who)}</h1><div class="sub">${esc(u.name)} · ${dt(f.fix_timestamp)} · ${f.latitude}, ${f.longitude}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="ib" ${prevDay ? `data-fx="${prevDay.id}"` : "disabled"}>‹ Previous day</button><span style="font-size:13px;color:var(--mu);text-align:center"><select id="dsel" title="Jump to any day that has location data">${dayList.map((d) => `<option value="${d.id}" ${d.k === dk ? "selected" : ""}>${d.label} · ${d.n} fix${d.n === 1 ? "" : "es"}${d.g ? " (" + d.g + " GNSS)" : ""}</option>`).join("")}</select><br>day ${di + 1} of ${days.length}</span><button class="ib" ${nextDay ? `data-fx="${nextDay.id}"` : "disabled"}>Next day ›</button></div></div>
 <div class="mg"><div><div class="tool"><label class="ck"><input type="checkbox" id="mo" checked> Other fixes</label><label class="ck"><input type="checkbox" id="mz" checked> Safe zones</label><label class="ck"><input type="checkbox" id="ma" checked> Alerts</label><label class="ck"><input type="checkbox" id="mg" checked> GNSS route</label>${devCount > 1 ? `<label class="ck" title="Untick to plot only ${esc(f.device_id || "this device")}"><input type="checkbox" id="md" ${FIX_ALL_DEVICES ? "checked" : ""}> All devices (${devCount})</label>` : ""}<span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap"><button class="ib" id="zi">＋</button><button class="ib" id="zo">－</button><button class="ib" id="zc">Centre on fix</button><button class="ib" id="zt">Fit whole day</button><button class="ib" id="zg" title="Show only the GNSS fixes of this day, joined by one line">GNSS only</button></span></div>
- <div id="gi" class="mu" style="margin:-2px 0 8px"></div>
+ <div id="cs" style="width:fit-content;max-width:100%;margin:0 0 6px;font-size:13px;line-height:1.5;color:var(--tx)"><b style="color:${lastCol}">● Current location</b> · ${esc(lastFx.device_id || "Unknown Device")} · ${dt(lastFx.fix_timestamp)} · ± ${lastFx.accuracy_m} m · ${esc(lastFx.source || "Unknown")}</div>
+ <div id="gi" class="mu" style="width:fit-content;max-width:100%;margin:0 0 8px"></div>
  <div id="mp" style="height:496px;border-radius:12px;overflow:hidden;background:var(--panel);border:1px solid var(--line)"></div>
  <div class="leg" style="margin-top:8px"><span><i style="background:#1a73e8;border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></i>GNSS fix</span><span><i style="background:#0f9d74;border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></i>Other source (cell, Wi-Fi)</span><span><i style="background:#1a73e8;height:3px;border-radius:2px;width:16px"></i>GNSS route</span><span><i style="background:#dc2626;border-radius:2px;transform:rotate(45deg)"></i>Alert</span><span><i style="background:#16a34a;border-radius:2px"></i>Safe zone</span><span id="rd" style="margin-left:auto;font-variant-numeric:tabular-nums"></span></div>
  <div class="pager" style="margin-top:6px">Hover a pin for details, click it to open that fix. Drag to pan, scroll to zoom.</div></div>
@@ -332,16 +336,45 @@ async function fixPage(f, u, i) {
     clickable: false,
   });
 
-  /* ---------- ONE shared popup card: opens while the mouse is over a marker, closes when it leaves ---------- */
-  const card = new google.maps.InfoWindow({ disableAutoPan: true, headerDisabled: true });
+  /* ---------- hover card: our own small tooltip, shown ONLY while the mouse is over a pin.
+     It sizes itself to its text (no empty header area like Google's InfoWindow) and never stays open. ---------- */
+  const mpEl = q("#mp");
+  mpEl.style.position = "relative";
+  const tip = document.createElement("div");
+  tip.style.cssText =
+    "position:absolute;display:none;z-index:5;pointer-events:none;width:max-content;max-width:280px;box-sizing:border-box;" +
+    "background:#fff;color:#000;font:13px/1.5 Arial,sans-serif;padding:6px 10px;border-radius:8px;white-space:nowrap;" +
+    "box-shadow:0 2px 10px rgba(0,0,0,.3)";
+  mpEl.appendChild(tip);
+  let px = 0,
+    py = 0; // pointer position inside the map box
+  const place = () => {
+    const w = tip.offsetWidth,
+      h = tip.offsetHeight;
+    let x = px + 14,
+      y = py - h - 14; // above and to the right of the pointer
+    if (x + w > mpEl.clientWidth - 4) x = px - w - 14;
+    if (y < 4) y = py + 18;
+    tip.style.left = Math.max(4, x) + "px";
+    tip.style.top = y + "px";
+  };
+  const hideTip = () => (tip.style.display = "none");
+  mpEl.addEventListener("mousemove", (e) => {
+    const r = mpEl.getBoundingClientRect();
+    px = e.clientX - r.left;
+    py = e.clientY - r.top;
+    if (tip.style.display !== "none") place();
+  });
+  mpEl.addEventListener("mouseleave", hideTip);
+  map.addListener("dragstart", hideTip);
+  map.addListener("zoom_changed", hideTip);
   const hover = (marker, lift, html) => {
     marker.addListener("mouseover", () => {
-      const body = typeof html === "function" ? html() : html;
-      card.setContent(`<div style="color:#000;font:13px/1.5 Arial,sans-serif;white-space:nowrap">${body}</div>`);
-      card.setOptions({ pixelOffset: new google.maps.Size(0, -lift) }); // lift = pin height, so the card sits above it
-      card.open({ map, anchor: marker, shouldFocus: false });
+      tip.innerHTML = typeof html === "function" ? html() : html;
+      tip.style.display = "block";
+      place();
     });
-    marker.addListener("mouseout", () => card.close());
+    marker.addListener("mouseout", hideTip);
   };
 
   const deviceName = f.device_id || "Unknown Device";
@@ -418,6 +451,7 @@ async function fixPage(f, u, i) {
     });
     me.setLabel(lab(f, "12px", true));
     routes.forEach((r) => r.setMap(on.g ? map : null));
+    hideTip();
   };
 
   /* ---------- fit helpers ---------- */
