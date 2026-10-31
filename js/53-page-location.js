@@ -399,5 +399,5 @@ async function fixPage(f, u, i) {
 
   $$("#view [data-t]").forEach((e) => (e.onclick = () => go(e.dataset.t)));
   $$("#view [data-fx]").forEach((e) => (e.onclick = () => go("fix-" + e.dataset.fx)));
-  fitFix();
+  fitTrail(); // open on the whole day
 }
