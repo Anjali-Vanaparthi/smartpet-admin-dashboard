@@ -3766,15 +3766,20 @@ async function fixPage(f, u, i) {
   });
 
   const GREEN = "#0f9d74", GREEN_D = "#0a6e52", GREEN_L = "#34d3a0";
-  const pin = (sel, scale) => ({
-    path: "M0,0 C-4,-10 -12,-14 -12,-24 A12,12 0 1,1 12,-24 C12,-14 4,-10 0,0 Z",
-    scale,
-    fillColor: sel ? GREEN : GREEN_L,
-    fillOpacity: 1,
-    strokeColor: sel ? "#fff" : GREEN_D,
-    strokeWeight: sel ? 2 : 1.2,
-    labelOrigin: new google.maps.Point(0, -24),
-  });
+  const BLUE = "#1a73e8", BLUE_D = "#0b4fb3", BLUE_L = "#5b9cf5";
+  const isG = (s) => s === "GNSS"; // GNSS fixes are blue, other sources green
+  const pin = (sel, scale, src) => {
+    const g = isG(src);
+    return {
+      path: "M0,0 C-4,-10 -12,-14 -12,-24 A12,12 0 1,1 12,-24 C12,-14 4,-10 0,0 Z",
+      scale,
+      fillColor: sel ? (g ? BLUE : GREEN) : g ? BLUE_L : GREEN_L,
+      fillOpacity: 1,
+      strokeColor: sel ? "#fff" : g ? BLUE_D : GREEN_D,
+      strokeWeight: sel ? 2 : 1.2,
+      labelOrigin: new google.maps.Point(0, -24),
+    };
+  };
   const numLabel = (n) =>
     dayFixes.length <= 40 ? { text: String(n), color: "#fff", fontSize: "10px", fontWeight: "700" } : undefined;
   const dot = (fill, scale) => ({
@@ -3840,7 +3845,7 @@ const me = new google.maps.Marker({
   map,
   position: here,
   title: `${deviceName} · Fix #${f.id}`,
-  icon: pin(true, 1.4),
+  icon: pin(true, 1.4, f.source),
   label: { text: String(dayFixes.findIndex((x) => x.id === f.id) + 1), color: "#fff", fontSize: "12px", fontWeight: "700" },
   zIndex: 1000,
 });
